@@ -10,7 +10,7 @@
 #' @param LSTM_type
 #' @param n_predictions
 #'
-#' @return
+#' @return None
 #' @export
 #'
 #' @examples
@@ -22,7 +22,6 @@ wt_lstm <- function(catchment,
                     epochs = c(100),
                     LSTM_type = NULL,
                     n_predictions = c(1, 3, 7)){
-  library(keras, quietly = TRUE)
 
   if(is.null(data_inputs)){
     warning('\nChoose a valid data_input:
@@ -41,9 +40,34 @@ wt_lstm <- function(catchment,
   old_wd <- getwd()
   setwd(paste0("../data/", catchment))
 
-  data <- feather::read_feather("input_data_V2.feather")
-  train <- feather::read_feather("train_data_V2.feather")
-  val <- feather::read_feather("val_data_V2.feather")
+  # check if there is seperate radiation data
+  rad_data <- length(list.files(pattern = "radiation_")) > 0
+  # in case of radiation or all data_input, load radiation data
+  if(data_inputs == "radiation" | data_inputs == "all" & rad_data){
+    data_prefix <- "radiation_"
+  } else {
+    data_prefix <- ""
+  }
+
+  #data <- read_feather(paste0("input_", data_prefix, "data.feather"))
+  train <- read_feather(paste0("train_", data_prefix, "data.feather"))
+  val <- read_feather(paste0("val_", data_prefix, "data.feather"))
+
+  if(data_inputs == "simple"){
+    relevant_data <- c("Q", "Tmean", "wt")
+  }
+  if(data_inputs == "precip"){
+    relevant_data <- c("Q", "Tmean", "wt", "RR")
+  }
+  if(data_inputs == "radiation"){
+    relevant_data <- c("Q", "Tmean", "wt", "GL")
+  }
+  if(data_inputs == "all"){
+    relevant_data <- c("Q", "Tmean", "wt", "RR", "GL")
+  }
+
+
+
 
   if(data_inputs == "simple"){
     LSTM_train <- train[, c("Q", "Tmean", "wt")]
@@ -103,7 +127,8 @@ wt_lstm <- function(catchment,
           n_predictions = grid$n_predictions,
           MoreArgs = list(x_train = x_train, y_train = y_train,
                           x_val = x_val, y_val = y_val,
-                          n_features = n_features))
+                          n_features = n_features, data_inputs = data_inputs,
+                          train_mean = train_mean, train_sd = train_sd))
   setwd(old_wd)
 }
 # Varying units (u) and n_timesteps (ts) and batch_size (bs)

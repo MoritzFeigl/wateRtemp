@@ -1,20 +1,25 @@
 #' wt_result_analysis
 #'
+#' Plots diagnostic plots for analysing the differen model results.
 #' @param catchment
 #' @param model
 #' @param cv_mode
 #' @param plot
 #'
-#' @return
+#' @return None
 #' @export
 #'
 #' @examples
 wt_result_analysis <- function(catchment, model, cv_mode, plot){
   old_wd <- getwd()
-  setwd(paste0("/media/cfgrammar/data/Dropbox/WT_Project/Modelling/data/", catchment))
+  wrong_folder_catcher <- tryCatch({setwd(catchment)},
+                                   error = function(e) {
+                                     message(paste0("ERROR: There is no folder named ", catchment, " in your current working directory."))
+                                     return(NA)
+                                   })
+  if(is.na(wrong_folder_catcher)) return(NA)
   # Data
   cat("Loading catchment data.\n")
-  library(feather)
   data <- read_feather("input_data_V2.feather")
   train <- read_feather("train_data_V2.feather")
   val <- read_feather("val_data_V2.feather")

@@ -1,45 +1,84 @@
 #' wt_XGBoost
 #'
-#' @param catchment
-#' @param model_or_optim
-#' @param cv_mode
-#' @param no.cores
-#' @param n_iter
-#' @param plot_ts
-#' @param save_importance_plot
+#' XGBoost modelling for water temperature data prepared with wt_preprocessing. Can either be used for loading pre-trained models or train a new model. The training is done in parallel and can take a while. yperparameter optimization is done using grid search and the rBayesianOptimization packages.
+#' @param catchment Name of the folder with the data as a string.
+#' @param data_inputs The kind of data to be used for the model run: "simple", "precip", "radiation", "all". See Details
+#' @param model_or_optim "model" if a pretrained model should be load, or "optim" if a new model should be trained
+#' @param cv_mode The crossvalidation scheme to be used. Can be either: "timeslice", or "repCV"
+#' @param n_iter Number of iterations for the bayesian hyperparameter optimization as a integer.
+#' @param plot_ts Should a dygraphy plot of the prediction and observation be plotted? TRUE/FALSE
+#' @param save_importance_plot Should the importance plot for XGBoost be saved in the folder. TRUE/FALSE
 #'
-#' @return
+#' @return None
 #' @export
+#' @details This function is able to train or load a pre-trained model for water temperature prediction. The features used for the prediction are defined by the "data_inputs" variable. "simple" means only discharge Q and mean air temperature Tmean are used. "precip" means that additional to "simple", precipitation data "RR" is used. "radiation" means that additional to "simple", longwave radiation data "GL" is used. "all" means that "simple" + precipitation + radiation data is used.
 #'
 #' @examples
-wt_XGBoost <- function(catchment, model_or_optim, cv_mode, no.cores, n_iter = 30,
+wt_XGBoost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n_iter = 30,
                             plot_ts = FALSE, save_importance_plot = FALSE){
   old_wd <- getwd()
-  setwd(paste0("/media/cfgrammar/data/Dropbox/WT_Project/Modelling/data/", catchment))
-
+  wrong_folder_catcher <- tryCatch({setwd(catchment)},
+                                   error = function(e) {
+                                     message(paste0("ERROR: There is no folder named ", catchment, " in your current working directory."))
+                                     return(NA)
+                                   })
+  if(is.na(wrong_folder_catcher)) return(NA)
   # 1. Data --------------------------------------------------------------------------------
-  #setwd("D:/WT/z_Sicherung_Dropbox/WT_Project")
-  #setwd("C:/Users/h0740567/Dropbox/WT_Project")
+  if(is.null(data_inputs)){
+    warning('\nChoose a valid data_input:
+            "simple"    = Q, Tmean and water temperatur observations
+            "precip"    = "simple" + additional precipitation observations
+            "radiation" = "simple" + additional longwave radiation observations
+            "all"       = all the above mentioned observations')
+  }
+
+
+
   cat("Loading catchment data.\n")
-  library(feather)
-  data <- read_feather("input_data_V2.feather")
-  train <- read_feather("train_data_V2.feather")
-  val <- read_feather("val_data_V2.feather")
+  # check if there is seperate radiation data
+  rad_data <- length(list.files(pattern = "radiation_")) > 0
+  # in case of radiation or all data_input, load radiation data
+  if(data_inputs == "radiation" | data_inputs == "all" & rad_data){
+    data_prefix <- "radiation_"
+  } else {
+    data_prefix <- ""
+  }
 
-  library(dygraphs)
-  library(xts)
-  library(tidyverse)
-  library(caret)
-  library(doParallel)
-  library(MASS)
-  library(ranger)
-  library(rBayesianOptimization)
-  library(pander)
+  #data <- read_feather(paste0("input_", data_prefix, "data.feather"))
+  train <- read_feather(paste0("train_", data_prefix, "data.feather"))
+  val <- read_feather(paste0("val_", data_prefix, "data.feather"))
+
+  if(data_inputs == "simple"){
+    relevant_data <- c("year", "Q", "Tmean", "wt", "Qdiff", "Tmean_diff",
+                       "Fmon.1", "Fmon.12", "Fmon.2", "Fmon.3", "Fmon.4", "Fmon.5", "Fmon.6",
+                       "Fmon.7", "Fmon.8", "Fmon.9", "Fmon.10", "Fmon.11",
+                       "Tmean_lag1", "Tmean_lag2", "Tmean_lag3", "Tmean_lag4",
+                       "Q_lag1", "Q_lag2", "Q_lag3", "Q_lag4")
+  }
+  if(data_inputs == "precip"){
+    relevant_data <- c("year", "Q", "RR", "Tmean", "wt", "Qdiff", "Tmean_diff",
+                       "Fmon.1", "Fmon.12", "Fmon.2", "Fmon.3", "Fmon.4", "Fmon.5", "Fmon.6",
+                       "Fmon.7", "Fmon.8", "Fmon.9", "Fmon.10", "Fmon.11",
+                       "Tmean_lag1", "Tmean_lag2", "Tmean_lag3", "Tmean_lag4",
+                       "Q_lag1", "Q_lag2", "Q_lag3", "Q_lag4")
+  }
+  if(data_inputs == "radiation"){
+    relevant_data <- c("year", "Q", "GL", "Tmean", "wt", "Qdiff", "Tmean_diff",
+                       "Fmon.1", "Fmon.12", "Fmon.2", "Fmon.3", "Fmon.4", "Fmon.5", "Fmon.6",
+                       "Fmon.7", "Fmon.8", "Fmon.9", "Fmon.10", "Fmon.11",
+                       "Tmean_lag1", "Tmean_lag2", "Tmean_lag3", "Tmean_lag4",
+                       "Q_lag1", "Q_lag2", "Q_lag3", "Q_lag4")
+  }
+  if(data_inputs == "all"){
+    relevant_data <- c("year", "Q", "RR", "GL", "Tmean", "wt", "Qdiff", "Tmean_diff",
+                       "Fmon.1", "Fmon.12", "Fmon.2", "Fmon.3", "Fmon.4", "Fmon.5", "Fmon.6",
+                       "Fmon.7", "Fmon.8", "Fmon.9", "Fmon.10", "Fmon.11",
+                       "Tmean_lag1", "Tmean_lag2", "Tmean_lag3", "Tmean_lag4",
+                       "Q_lag1", "Q_lag2", "Q_lag3", "Q_lag4")
+  }
   set.seed(42)
-
-
-  xgb_train <- train[, -c(1, 3, 4, 11, 14:56)] # fuzzy
-  xgb_val <- val[, -c(1, 3, 4, 11, 14:56)] # fuzzy
+  xgb_train <- train[, relevant_data] # fuzzy
+  xgb_val <- val[, relevant_data] # fuzzy
   # remove NA rows resulting from Qdiff, Tmean_diff
   na_train <- which(is.na(xgb_train), arr.ind = TRUE)
   xgb_train <- xgb_train[-na_train[,1],]
@@ -55,7 +94,7 @@ wt_XGBoost <- function(catchment, model_or_optim, cv_mode, no.cores, n_iter = 30
 
   # caret Model --------------------------------------------------------------------------
   cat("Chosen cross validation mode:", cv_mode, "\n")
-  if(!(cv_mode %in% c("timeslice", "repCV"))) stop("cv_model can be either timeslice or repCV!")
+  if(!(cv_mode %in% c("timeslice", "repCV"))) stop('cv_model can be either "timeslice" or "repCV"!')
   if(cv_mode == "timeslice"){
     tc <- trainControl(method = "timeslice",
                        initialWindow = 730,
@@ -109,9 +148,9 @@ wt_XGBoost <- function(catchment, model_or_optim, cv_mode, no.cores, n_iter = 30
                       min_child_weight = 1)
 
     #registerDoParallel(cores = no.cores)
-    cat("1. Optimize number of iterations for model with eta = 0.05:\n")
+    cat("1. Optimize number of trees for model with eta = 0.05:\n")
     set.seed(42)
-    capture.output(xgb_fit <- train(wt ~ .,
+    capture.output(xgb_fit <- caret::train(wt ~ .,
                                        data = xgb_train,
                                        method = "xgbTree",
                                        trControl = tc,
@@ -130,7 +169,7 @@ wt_XGBoost <- function(catchment, model_or_optim, cv_mode, no.cores, n_iter = 30
                       subsample = 1,
                       min_child_weight = 1)
     set.seed(42)
-    capture.output(xgb_fit <- train(wt ~ .,
+    capture.output(xgb_fit <- caret::train(wt ~ .,
                                     data = xgb_train,
                                     method = "xgbTree",
                                     trControl = tc,
@@ -142,7 +181,7 @@ wt_XGBoost <- function(catchment, model_or_optim, cv_mode, no.cores, n_iter = 30
     } else {
       nrounds_optim <- xgb_fit$results[optim_ind, "nrounds"]
     }
-    cat("   optimal number of iterations:", nrounds_optim, "\n")
+    cat("   optimal number of trees:", nrounds_optim, "\n")
     cat("2. Optimize tree specific parameters\n")
 
     tg <- expand.grid(nrounds = nrounds_optim,
@@ -153,7 +192,7 @@ wt_XGBoost <- function(catchment, model_or_optim, cv_mode, no.cores, n_iter = 30
                       subsample = 1,
                       min_child_weight = c(1, 3, 5, 7, 9))
     set.seed(42)
-    capture.output(xgb_fit <- train(wt ~ .,
+    capture.output(xgb_fit <- caret::train(wt ~ .,
                                     data = xgb_train,
                                     method = "xgbTree",
                                     trControl = tc,
@@ -171,7 +210,7 @@ wt_XGBoost <- function(catchment, model_or_optim, cv_mode, no.cores, n_iter = 30
                       subsample = c(0.8, 1),
                       min_child_weight = xgb_fit$bestTune$min_child_weight)
     set.seed(42)
-    txt <- capture.output(gamma_init <- train(wt ~ .,
+    txt <- capture.output(gamma_init <- caret::train(wt ~ .,
                                     data = xgb_train,
                                     method = "xgbTree",
                                     trControl = tc,
@@ -191,7 +230,7 @@ wt_XGBoost <- function(catchment, model_or_optim, cv_mode, no.cores, n_iter = 30
                                subsample = subsample,
                                min_child_weight = xgb_fit$bestTune$min_child_weight)
       txt <- capture.output(
-        mod <- train(wt ~ .,
+        mod <- caret::train(wt ~ .,
                      data = xgb_train,
                      method = "xgbTree",
                      trControl = tc,
@@ -220,7 +259,7 @@ wt_XGBoost <- function(catchment, model_or_optim, cv_mode, no.cores, n_iter = 30
 
 
     # Reduce eta and increase nrounds
-    cat("4. reduce learning rate and increase number of iterations\n")
+    cat("4. reduce learning rate and increase number of trees\n")
     grid <- expand.grid(nrounds = c(2000, 3000, 4000, 5000),
                         max_depth = xgb_fit$bestTune$max_depth,
                         eta = c(0.001, 0.005),
@@ -229,7 +268,7 @@ wt_XGBoost <- function(catchment, model_or_optim, cv_mode, no.cores, n_iter = 30
                         subsample = search$Best_Par["subsample"],
                         min_child_weight = xgb_fit$bestTune$min_child_weight)
     set.seed(42)
-    txt <- capture.output(eta_nrounds_init <- train(wt ~ .,
+    txt <- capture.output(eta_nrounds_init <- caret::train(wt ~ .,
                                               data = xgb_train,
                                               method = "xgbTree",
                                               trControl = tc,
@@ -249,7 +288,7 @@ wt_XGBoost <- function(catchment, model_or_optim, cv_mode, no.cores, n_iter = 30
                                subsample = search$Best_Par["subsample"],
                                min_child_weight = xgb_fit$bestTune$min_child_weight)
       txt <- capture.output(
-        mod <- train(wt ~ .,
+        mod <- caret::train(wt ~ .,
                      data = xgb_train,
                      method = "xgbTree",
                      trControl = tc,
@@ -299,7 +338,7 @@ wt_XGBoost <- function(catchment, model_or_optim, cv_mode, no.cores, n_iter = 30
                       subsample = as.numeric(best_par["subsample"]),
                       min_child_weight = as.numeric(best_par["min_child_weight"]))
 
-  txt <- capture.output(xgb_fit <- train(wt ~ .,
+  txt <- capture.output(xgb_fit <- caret::train(wt ~ .,
                       data = xgb_train,
                       method = "xgbTree",
                       trControl = tc,
@@ -313,7 +352,6 @@ wt_XGBoost <- function(catchment, model_or_optim, cv_mode, no.cores, n_iter = 30
   # Prediction and model diagnostics -------------------------------------------------------
   cat("Start prediction and model diagnostics\n")
 
-  source("../../../functions/rmse_nse.R")
   model_diagnostic <- rmse_nse(model = xgb_fit, val = xgb_val)
   model_diagnostic <- cbind(model_diagnostic, grid,
                             stringsAsFactors = FALSE)

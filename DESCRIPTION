@@ -8,5 +8,6 @@ Description: Water temperature modelling with regression models, random forest, 
 License: GPL-2 | file LICENSE
 Encoding: UTF-8
 LazyData: true
-Imports: caret, ggplot2, keras, tensorflow, feather
+Depends: caret, ggplot2, keras, tensorflow, parallel, rBayesianOptimization, feather, ranger, xgboost
+Imports: 
 RoxygenNote: 6.1.1

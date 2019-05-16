@@ -5,7 +5,7 @@
 #' @param data
 #' @param year_range
 #'
-#' @return
+#' @return None
 #' @export
 #'
 #' @examples
@@ -21,7 +21,7 @@ wt_preprocess <- function(catchment, data,
   if(is.na(wrong_folder_catcher)) return(NA)
 
   # remove dates outside the relevant range
-  data <- data[data$year > year_range[1] & data$year < year_range[2], ]
+  data <- data[data$year >= year_range[1] & data$year <= year_range[2], ]
   # Q and T differences
   data$time_diff <- c(NA, as.numeric(
     data$date[-1] - data$date[-nrow(data)]) )
@@ -155,7 +155,6 @@ wt_preprocess <- function(catchment, data,
     radiation_train <- radiation_data[radiation_data$year <= split_year,]
     radiation_val <- radiation_data[radiation_data$year > split_year,]
     cat("Storing preprocessed radiation data in catchment folder...\n")
-    feather::write_feather(radiation_data, "input_radiation_data.feather")
     feather::write_feather(radiation_train, "train_radiation_data.feather")
     feather::write_feather(radiation_val, "val_radiation_data.feather")
   }

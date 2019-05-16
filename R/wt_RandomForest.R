@@ -1,44 +1,92 @@
 #' wt_RandomForest
 #'
-#' @param catchment
-#' @param model_or_optim
-#' @param cv_mode
-#' @param no.cores
-#' @param n_iter
-#' @param plot_ts
-#' @param save_importance_plot
+#' Random Forest modelling for water temperature data prepared with wt_preprocessing. Can either be used for loading pre-trained models or train a new model. The training is done in parallel and can take a while. Hyperparameter optimization is done by grid search.
+#' @param catchment Name of the folder with the data as a string.
+#' @param model_or_optim "model" if a pretrained model should be load, or "optim" if a new model should be trained
+#' @param cv_mode The crossvalidation scheme to be used. Can be either: "timeslice", or "repCV"
+#' @param no_cores Number of cores used for training as integer.
+#' @param plot_ts Should a dygraphy plot of the prediction and observation be plotted? TRUE/FALSE
+#' @param save_importance_plot Should the importance plot for the random forest be saved in the folder. TRUE/FALSE
 #'
-#' @return
+#' @return None, results are saved in RF folder which is created inside the catchment folder.
 #' @export
 #'
 #' @examples
-wt_RandomForest <- function(catchment, model_or_optim, cv_mode, no.cores, n_iter = 30,
+#' wt_preprocess("Ybbs", data = data, year_range = c(1981, 2015))
+#' wt_RandomForest(catchment = "Ybbs",
+#'                 model_or_optim = "optim",
+#'                 cv_mode = "timeslice",
+#'                 no.cores = 17,
+#'                 plot_ts = FALSE,
+#'                 save_importance_plot = TRUE)
+#'
+wt_RandomForest <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, no_cores = detectCores() - 1,
                             plot_ts = FALSE, save_importance_plot = FALSE){
+  #library(doParallel)
+  #library(MASS)
+  #library(ranger)
   old_wd <- getwd()
-  setwd(paste0("/media/cfgrammar/data/Dropbox/WT_Project/Modelling/data/", catchment))
-
+  wrong_folder_catcher <- tryCatch({setwd(catchment)},
+                                   error = function(e) {
+                                     message(paste0("ERROR: There is no folder named ", catchment, " in your current working directory."))
+                                     return(NA)
+                                   })
+  if(is.na(wrong_folder_catcher)) return(NA)
   # 1. Data --------------------------------------------------------------------------------
-  #setwd("D:/WT/z_Sicherung_Dropbox/WT_Project")
-  #setwd("C:/Users/h0740567/Dropbox/WT_Project")
-  cat("Loading catchment data.\n")
-  library(feather)
-  data <- read_feather("input_data_V2.feather")
-  train <- read_feather("train_data_V2.feather")
-  val <- read_feather("val_data_V2.feather")
+  if(is.null(data_inputs)){
+    warning('\nChoose a valid data_input:
+            "simple"    = Q, Tmean and water temperatur observations
+            "precip"    = "simple" + additional precipitation observations
+            "radiation" = "simple" + additional longwave radiation observations
+            "all"       = all the above mentioned observations')
+  }
 
-  library(dygraphs)
-  library(xts)
-  library(tidyverse)
-  library(caret)
-  library(doParallel)
-  library(MASS)
-  library(ranger)
-  library(rBayesianOptimization)
+  cat("Loading catchment data.\n")
+  # check if there is seperate radiation data
+  rad_data <- length(list.files(pattern = "radiation_")) > 0
+  # in case of radiation or all data_input, load radiation data
+  if(data_inputs == "radiation" | data_inputs == "all" & rad_data){
+    data_prefix <- "radiation_"
+  } else {
+    data_prefix <- ""
+  }
+  #data <- read_feather(paste0("input_", data_prefix, "data.feather"))
+  train <- read_feather(paste0("train_", data_prefix, "data.feather"))
+  val <- read_feather(paste0("val_", data_prefix, "data.feather"))
+
   set.seed(42)
 
+  if(data_inputs == "simple"){
+    relevant_data <- c("year", "Q", "Tmean", "wt", "Qdiff", "Tmean_diff",
+                       "Fmon.1", "Fmon.12", "Fmon.2", "Fmon.3", "Fmon.4", "Fmon.5", "Fmon.6",
+                       "Fmon.7", "Fmon.8", "Fmon.9", "Fmon.10", "Fmon.11",
+                       "Tmean_lag1", "Tmean_lag2", "Tmean_lag3", "Tmean_lag4",
+                       "Q_lag1", "Q_lag2", "Q_lag3", "Q_lag4")
+  }
+  if(data_inputs == "precip"){
+    relevant_data <- c("year", "Q", "RR", "Tmean", "wt", "Qdiff", "Tmean_diff",
+                       "Fmon.1", "Fmon.12", "Fmon.2", "Fmon.3", "Fmon.4", "Fmon.5", "Fmon.6",
+                       "Fmon.7", "Fmon.8", "Fmon.9", "Fmon.10", "Fmon.11",
+                       "Tmean_lag1", "Tmean_lag2", "Tmean_lag3", "Tmean_lag4",
+                       "Q_lag1", "Q_lag2", "Q_lag3", "Q_lag4")
+  }
+  if(data_inputs == "radiation"){
+    relevant_data <- c("year", "Q", "GL", "Tmean", "wt", "Qdiff", "Tmean_diff",
+                       "Fmon.1", "Fmon.12", "Fmon.2", "Fmon.3", "Fmon.4", "Fmon.5", "Fmon.6",
+                       "Fmon.7", "Fmon.8", "Fmon.9", "Fmon.10", "Fmon.11",
+                       "Tmean_lag1", "Tmean_lag2", "Tmean_lag3", "Tmean_lag4",
+                       "Q_lag1", "Q_lag2", "Q_lag3", "Q_lag4")
+  }
+  if(data_inputs == "all"){
+    relevant_data <- c("year", "Q", "RR", "GL", "Tmean", "wt", "Qdiff", "Tmean_diff",
+                       "Fmon.1", "Fmon.12", "Fmon.2", "Fmon.3", "Fmon.4", "Fmon.5", "Fmon.6",
+                       "Fmon.7", "Fmon.8", "Fmon.9", "Fmon.10", "Fmon.11",
+                       "Tmean_lag1", "Tmean_lag2", "Tmean_lag3", "Tmean_lag4",
+                       "Q_lag1", "Q_lag2", "Q_lag3", "Q_lag4")
+  }
 
-  ranger_train <- train[, -c(1, 3, 4, 11, 14:56)] # fuzzy
-  ranger_val <- val[, -c(1, 3, 4, 11, 14:56)] # fuzzy
+  ranger_train <- train[, relevant_data] # fuzzy
+  ranger_val <- val[, relevant_data] # fuzzy
   # remove NA rows resulting from Qdiff, Tmean_diff
   na_train <- which(is.na(ranger_train), arr.ind = TRUE)
   ranger_train <- ranger_train[-na_train[,1],]
@@ -75,11 +123,11 @@ wt_RandomForest <- function(catchment, model_or_optim, cv_mode, no.cores, n_iter
     #cat("Calculate initial points for bayesian hyperparameter optimization.\n")
 
     tg <- expand.grid(.mtry = c(3:(ncol(ranger_train) - 1)),
-                      .splitrule = "extratrees", #c("variance", "extratrees"),
+                      .splitrule = c("variance", "extratrees"),
                       .min.node.size = c(1:10))
-    registerDoParallel(cores = no.cores)
+    doParallel::registerDoParallel(cores = no_cores)
     set.seed(42)
-    ranger_fit <- train(wt ~ .,
+    ranger_fit <- caret::train(wt ~ .,
                         data = ranger_train,
                         method = "ranger",
                         trControl = tc,
@@ -89,84 +137,12 @@ wt_RandomForest <- function(catchment, model_or_optim, cv_mode, no.cores, n_iter
     saveRDS(ranger_fit, paste0("optimized_RF_model_", cv_mode, ".rds"))
     best_par <- data.frame(mtry = ranger_fit$bestTune["mtry"],
                            "min.node.size" = ranger_fit$bestTune["min.node.size"],
-                           "splitrule" = ranger_fit$bestTune["splitrule"])
+                           "splitrule" = trainranger_fit$bestTune["splitrule"])
 
     cat("Finished hyperparameter optimization, best parameters:\n")
     for(i in 1:ncol(best_par)) cat(names(best_par)[i], ": ", as.numeric(best_par[1, i]), "\n", sep = "")
 
   }
-    # NOT USED AT THE MOMENT
-    # Bayesian optimization ----------------------------------------------------------------
-  #   cat("Starting bayesian hyperparameter optimization.\n")
-  #   ranger_fit_bayes <- function(mtry, min.node.size) {
-  #     rf_grid <- expand.grid(.mtry = mtry,
-  #                            .splitrule = "extratrees",
-  #                            # results have shown that for wt extratrees always performed best
-  #                            .min.node.size = round(min.node.size, 0))
-  #     registerDoParallel(cores = 17)
-  #     txt <- capture.output(
-  #       mod <- train(wt ~ .,
-  #                    data = ranger_train,
-  #                    method = "ranger",
-  #                    trControl = tc,
-  #                    tuneGrid = rf_grid,
-  #                    num.threads = 1)
-  #     )
-  #     list(Score = -getTrainPerf(mod)[, "TrainRMSE"], Pred = 0)
-  #   }
-  #   ## Define the bounds of the search.
-  #   lower_bounds <- c("mtry" = 3L, "min.node.size" = 1L)
-  #   upper_bounds <- c("mtry" = 20L, "min.node.size" = 10L)
-  #   bounds <- list("mtry" = c(lower_bounds[1], upper_bounds[1]),
-  #                  "min.node.size" = c(lower_bounds[2], upper_bounds[2]))
-  #   ## Create a grid of values as the input into the BO code
-  #   initial_grid <- ranger_fit$results[ranger_fit$results$splitrule == "extratrees",
-  #                                      c("mtry", "min.node.size", "RMSE")]
-  #   names(initial_grid) <- c("mtry", "min.node.size", "Value")
-  #   initial_grid$Value <- initial_grid$Value * -1
-  #
-  #   set.seed(42)
-  #   rf_search <- BayesianOptimization(ranger_fit_bayes,
-  #                                     bounds = bounds,
-  #                                     init_grid_dt = initial_grid,
-  #                                     init_points = 0,
-  #                                     n_iter = n_iter,
-  #                                     acq = "ucb",
-  #                                     kappa = 2.576,
-  #                                     eps = 0.0,
-  #                                     verbose = TRUE)
-  #   saveRDS(rf_search, paste0("RF_optimization_results_", cv_mode, ".rds"))
-  #
-  #   best_par <- data.frame(mtry = rf_search$Best_Par["mtry"],
-  #                          "min.node.size" = rf_search$Best_Par["min.node.size"])
-  #
-  #   cat("Finished hyperparameter optimization, best parameters:\n")
-  #   for(i in 1:ncol(best_par)) cat(names(best_par)[i], ":", as.numeric(best_par[1, i]), "\n")
-  # }
-  #
-
-  # NOT USED AS GRID SEARCH HAS OPTIM MODEL ALREADY!
-  # Train best model --------------------------------------------------------------------
-  # cat("Train best model.\n")
-  # if(model_or_optim == "model"){
-  #   rf_search <- readRDS(paste0("RF_optimization_results_", cv_mode, ".rds"))
-  # }
-  #
-  # rf_grid <- expand.grid(.mtry = rf_search$Best_Par["mtry"],
-  #                        .splitrule = "extratrees",
-  #                        # results have shown that for wt extratrees always performed best
-  #                        .min.node.size = rf_search$Best_Par["min.node.size"])
-  # registerDoParallel(cores = no.cores)
-  # txt <- capture.output(ranger_fit <- train(wt ~ .,
-  #                                           data = ranger_train,
-  #                                           method = "ranger",
-  #                                           trControl = tc,
-  #                                           tuneGrid = rf_grid,
-  #                                           num.threads = 1,
-  #                                           importance = "impurity"))
-  # saveRDS(ranger_fit, paste0("optimizedRF_model_", cv_mode, ".rds"))
-  # cat("Saved best model as", paste0("optimizedRF_model_", cv_mode,  ".rds"), "\n")
-
   # Load optimized model
   if(model_or_optim == "model"){
     cat("Loading optimized model.\n")
@@ -176,7 +152,7 @@ wt_RandomForest <- function(catchment, model_or_optim, cv_mode, no.cores, n_iter
   # Prediction and model diagnostics -------------------------------------------------------
   cat("Start prediction and model diagnostics")
 
-  source("../../../functions/rmse_nse.R")
+  #source("../../../functions/rmse_nse.R")
   model_diagnostic <- rmse_nse(model = ranger_fit, val = ranger_val)
   model_diagnostic <- cbind(model_diagnostic,
                             mtry = ranger_fit$bestTune["mtry"],
@@ -189,9 +165,9 @@ wt_RandomForest <- function(catchment, model_or_optim, cv_mode, no.cores, n_iter
 
   if(plot_ts){
     predict_ranger <- predict(ranger_fit, ranger_val)
-    pred_xts_ranger <- xts(cbind(ranger_val, "predictions" = predict_ranger),
+    pred_xts_ranger <- xts::xts(cbind(ranger_val, "predictions" = predict_ranger),
                            order.by = as.POSIXct(paste0(val$year, "-", val$mon, "-", val$day)))
-    print(dygraph(pred_xts_ranger[, c("wt", "predictions")]) %>%  dyRangeSelector())
+    print(dygraphs::dygraph(pred_xts_ranger[, c("wt", "predictions")]) %>%  dyRangeSelector())
   }
 
   if(save_importance_plot){
