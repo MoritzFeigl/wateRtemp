@@ -55,60 +55,40 @@ wt_lstm <- function(catchment,
 
   if(data_inputs == "simple"){
     relevant_data <- c("Q", "Tmean", "wt")
-  }
-  if(data_inputs == "precip"){
-    relevant_data <- c("Q", "Tmean", "wt", "RR")
-  }
-  if(data_inputs == "radiation"){
-    relevant_data <- c("Q", "Tmean", "wt", "GL")
-  }
-  if(data_inputs == "all"){
-    relevant_data <- c("Q", "Tmean", "wt", "RR", "GL")
-  }
-
-
-
-
-  if(data_inputs == "simple"){
-    LSTM_train <- train[, c("Q", "Tmean", "wt")]
-    LSTM_val <- val[, c("Q", "Tmean", "wt")]
-    # Scaling
-    train_mean <- mean(LSTM_train$wt)
-    train_sd <- sd(LSTM_train$wt)
-    LSTM_train[, c("Q", "Tmean", "wt")] <- scale(LSTM_train[, c("Q", "Tmean", "wt")])
-    LSTM_val[, c("Q", "Tmean")] <- scale(LSTM_val[, c("Q", "Tmean")])
-    LSTM_val$wt <- (LSTM_val$wt - train_mean)/train_sd
-
-    # As matrix
-    LSTM_train <- as.matrix(LSTM_train)
-    LSTM_val <- as.matrix(LSTM_val)
-    # x: Q and Tmean, y: wt
-    x_train <- LSTM_train[, -3]
-    y_train <- LSTM_train[, 3]
-    x_val <- LSTM_val[, -3]
-    y_val <- LSTM_val[, 3]
     n_features <- 2
   }
   if(data_inputs == "precip"){
-    LSTM_train <- train[, c("Q", "Tmean", "wt", "RR")]
-    LSTM_val <- val[, c("Q", "Tmean", "wt", "RR")]
-    # Scaling
-    train_mean <- mean(LSTM_train$wt)
-    train_sd <- sd(LSTM_train$wt)
-    LSTM_train[, c("Q", "Tmean", "wt", "RR")] <- scale(LSTM_train[, c("Q", "Tmean", "wt", "RR")])
-    LSTM_val[, c("Q", "Tmean", "RR")] <- scale(LSTM_val[, c("Q", "Tmean", "RR")])
-    LSTM_val$wt <- (LSTM_val$wt - train_mean)/train_sd
-
-    # As matrix
-    LSTM_train <- as.matrix(LSTM_train)
-    LSTM_val <- as.matrix(LSTM_val)
-    # x: Q and Tmean, y: wt
-    x_train <- LSTM_train[, c("Q", "Tmean", "RR")]
-    y_train <- LSTM_train[, "wt"]
-    x_val <- LSTM_val[, c("Q", "Tmean", "RR")]
-    y_val <- LSTM_val[, "wt"]
+    relevant_data <- c("Q", "Tmean", "wt", "RR")
     n_features <- 3
   }
+  if(data_inputs == "radiation"){
+    relevant_data <- c("Q", "Tmean", "wt", "GL")
+    n_features <- 3
+  }
+  if(data_inputs == "all"){
+    relevant_data <- c("Q", "Tmean", "wt", "RR", "GL")
+    n_features <- 4
+  }
+
+
+  LSTM_train <- train[, relevant_data]
+  LSTM_val <- val[, relevant_data]
+  # Scaling
+  train_mean <- mean(LSTM_train$wt)
+  train_sd <- sd(LSTM_train$wt)
+  LSTM_train[, relevant_data] <- scale(LSTM_train[, relevant_data])
+  LSTM_val[, relevant_data[-3]] <- scale(LSTM_val[, relevant_data[-3]])
+  LSTM_val$wt <- (LSTM_val$wt - train_mean)/train_sd
+
+  # As matrix
+  LSTM_train <- as.matrix(LSTM_train)
+  LSTM_val <- as.matrix(LSTM_val)
+  # x: Q and Tmean, y: wt
+  x_train <- LSTM_train[, relevant_data[-3]]
+  y_train <- LSTM_train[, c("wt")]
+  x_val <- LSTM_val[, relevant_data[-3]]
+  y_val <- LSTM_val[, c("wt")]
+
 
 # Define grid and apply function
   grid <- expand.grid("ts" = ts,
