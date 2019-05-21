@@ -93,8 +93,10 @@ wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n
       xgb_train <- train[, relevant_data] # fuzzy
       xgb_val <- val[, relevant_data] # fuzzy
       # remove NA rows resulting from Qdiff, Tmean_diff
-      na_train <- which(is.na(xgb_train), arr.ind = TRUE)
-      xgb_train <- xgb_train[-na_train[,1],]
+      na_train <- which(is.na(train), arr.ind = TRUE)
+      if(nrow(na_train) > 0) train <- train[-unique(na_train[,1]),]
+      na_val <- which(is.na(val), arr.ind = TRUE)
+      if(nrow(na_val) > 0) val <- val[-na_val[,1],]
 
       cat(paste0("Create XGBoost folder for catchment ", catchment, ".\n"))
       if (file.exists("XGBoost")){
@@ -111,8 +113,10 @@ wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n
       cat("Chosen cross validation mode:", cv_mode, "\n")
       if(!(cv_mode %in% c("timeslice", "repCV"))) stop('cv_model can be either "timeslice" or "repCV"!')
       if(cv_mode == "timeslice"){
-        n_seeds <- nrow(ranger_train) - 730
-        seeds <- as.list(rep(42, n_seeds))
+        n_seeds <- ceiling((nrow(ranger_train) - 730)/60)
+        seeds <- vector(mode = "list", length = n_seeds)
+        set.seed(1234)
+        for(i in 1:n_seeds) seeds[[i]] <- sample(10000, 60)
         tc <- trainControl(method = "timeslice",
                            initialWindow = 730,
                            horizon = 90,
@@ -123,7 +127,8 @@ wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n
                            seeds = seeds)
       }
       if(cv_mode == "repCV"){
-        seeds <- as.list(rep(42, 51))
+        set.seed(1242)
+        seeds <- as.list(sample(10000, 51))
         tc <- trainControl(method = "repeatedcv",
                            number = 10,
                            repeats = 5,
@@ -205,14 +210,14 @@ wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n
         cat("2. Optimize tree specific parameters\n")
 
         tg <- expand.grid(nrounds = nrounds_optim,
-                          max_depth = seq(3,20, 2),
+                          max_depth = seq(3, 4, 5, 6),
                           eta = 0.05,
                           gamma = c(0),
                           colsample_bytree = c(0.8),
                           subsample = 1,
                           min_child_weight = c(1, 3, 5, 7, 9))
 
-        capture.output(xgb_fit <- caret::train(wt ~ .,
+        txt <- capture.output(xgb_fit <- caret::train(wt ~ .,
                                                data = xgb_train,
                                                method = "xgbTree",
                                                trControl = tc,
@@ -297,7 +302,7 @@ wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n
         initial_grid <- eta_nrounds_init$results[, c("eta", "nrounds", "RMSE")]
         names(initial_grid) <- c("eta", "nrounds", "Value")
         initial_grid$Value <- initial_grid$Value * -1
-
+        #initial_grid$nrounds <- as.integer(initial_grid$nrounds)
         # Bayesian optimization of gamma
         xgb_optim_eta_nrounds <- function(eta, nrounds) {
           tune_grid <- expand.grid(nrounds = nrounds,
@@ -318,7 +323,7 @@ wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n
 
           list(Score = -getTrainPerf(mod)[, "TrainRMSE"], Pred = 0)
         }
-        bounds <- list(eta = c(0.0001, 0.01),
+        bounds <- list(eta = c(0.001, 0.1),
                        nrounds = c(1000L, 6000L))
 
         set.seed(42)
@@ -332,22 +337,24 @@ wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n
                                                               eps = 0.0,
                                                               verbose = TRUE))
 
-        best_par <- data.frame(nrounds = search2$Best_Par["nrounds"],
+        best_par <- data.frame(model = model_name,
+                               nrounds = search2$Best_Par["nrounds"],
                                max_depth = xgb_fit$bestTune$max_depth,
                                eta = search2$Best_Par["eta"],
                                gamma = search$Best_Par["gamma"],
                                colsample_bytree = search$Best_Par["colsample_bytree"],
                                subsample = search$Best_Par["subsample"],
                                min_child_weight = xgb_fit$bestTune$min_child_weight)
-        write_feather(best_par, paste0(model_name, "/xgb_optimization_results.feather"))
+
+        feather::write_feather(best_par, paste0(model_name, "/xgb_optimized_parameters.feather"))
         cat("Finished hyperparameter optimization, best parameters:\n")
-        for(i in 1:ncol(best_par)) cat(names(best_par)[i], ":", as.numeric(best_par[1, i]), "\n")
+        for(i in 2:ncol(best_par)) cat(names(best_par)[i], ":", as.numeric(best_par[1, i]), "\n")
       }
 
       # Train best model
       cat("Train best model.\n")
       if(model_or_optim == "model"){
-        best_par <- read_feather(paste0(model_name, "/xgb_optimization_results.feather"))
+        best_par <- feather::read_feather(paste0(model_name, "/xgb_optimized_parameters.feather"))
       }
 
       grid <- expand.grid(nrounds = as.integer(best_par["nrounds"]),
@@ -366,7 +373,7 @@ wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n
                                                     num.threads = 1,
                                                     importance = "impurity"))
       saveRDS(xgb_fit, paste0(model_name, "/optimizedXGBoost_model.rds"))
-      cat("Saved best model as", paste0("model_name/optimizedXGBoost_model.rds"), "\n")
+      cat("Saved best model as", paste0(model_name, "/optimizedXGBoost_model.rds"), "\n")
 
 
       # Prediction and model diagnostics -------------------------------------------------------
@@ -391,7 +398,7 @@ wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n
         predict_xgb <- predict(xgb_fit, xgb_val)
         pred_xts_xgb <- xts::xts(cbind(xgb_val, "predictions" = predict_xgb),
                                  order.by = as.POSIXct(paste0(val$year, "-", val$mon, "-", val$day)))
-        print(dygraph(pred_xts_xgb[, c("wt", "predictions")], main = "XGBoost prediction") %>%
+        print(dygraphs::dygraph(pred_xts_xgb[, c("wt", "predictions")], main = "XGBoost prediction") %>%
                 dygraphs::dyRangeSelector())
       }
 
@@ -408,7 +415,7 @@ wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n
           ggtitle("Information Value Summary - XGBoost")+
           guides(fill=F) +
           scale_fill_gradient(low="red", high="blue")
-        ggsave(filename = paste0(model_name, "/XGB_importance_plot_", cv_mode, ".png"), plot = p, device = "png",
+        ggsave(filename = paste0(model_name, "/XGB_importance_plot.png"), plot = p, device = "png",
                dpi = "retina")
       }
     }

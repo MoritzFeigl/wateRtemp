@@ -98,8 +98,10 @@ wt_randomforest <- function(catchment, data_inputs = NULL, model_or_optim, cv_mo
       ranger_train <- train[, relevant_data] # fuzzy
       ranger_val <- val[, relevant_data] # fuzzy
       # remove NA rows resulting from Qdiff, Tmean_diff
-      na_train <- which(is.na(ranger_train), arr.ind = TRUE)
-      ranger_train <- ranger_train[-na_train[,1],]
+      na_train <- which(is.na(train), arr.ind = TRUE)
+      if(nrow(na_train) > 0) train <- train[-unique(na_train[,1]),]
+      na_val <- which(is.na(val), arr.ind = TRUE)
+      if(nrow(na_val) > 0) val <- val[-na_val[,1],]
 
       cat(paste0("Create random forest folder for catchment ", catchment, ".\n"))
       if (file.exists("RF")){
@@ -118,8 +120,10 @@ wt_randomforest <- function(catchment, data_inputs = NULL, model_or_optim, cv_mo
       # train control
       if(!(cv_mode %in% c("timeslice", "repCV"))) stop("cv_model can be either timeslice or repCV!")
       if(cv_mode == "timeslice"){
-        n_seeds <- nrow(ranger_train) - 730
-        seeds <- as.list(rep(42, n_seeds))
+        n_seeds <- ceiling((nrow(ranger_train) - 730)/60)
+        seeds <- vector(mode = "list", length = n_seeds)
+        set.seed(1234)
+        for(i in 1:n_seeds) seeds[[i]] <- sample(10000, 60)
         tc <- trainControl(method = "timeslice",
                            initialWindow = 730,
                            horizon = 90,
@@ -130,7 +134,8 @@ wt_randomforest <- function(catchment, data_inputs = NULL, model_or_optim, cv_mo
                            seeds = seeds)
       }
       if(cv_mode == "repCV"){
-        seeds <- as.list(rep(42, 51))
+        set.seed(1242)
+        seeds <- as.list(sample(10000, 51))
         tc <- trainControl(method = "repeatedcv",
                            number = 10,
                            repeats = 5,
@@ -142,10 +147,12 @@ wt_randomforest <- function(catchment, data_inputs = NULL, model_or_optim, cv_mo
       if(model_or_optim == "optim"){
         cat("Grid search optimization.\n")
         #cat("Calculate initial points for bayesian hyperparameter optimization.\n")
-
-        tg <- expand.grid(.mtry = c(3:(ncol(ranger_train) - 1)),
+        all_mtries <- 3:(ncol(ranger_train) - 1)
+        mtries <- all_mtries[all_mtries%%2 == 1] # take only a subset -> otherwise grid too large
+        mns <- c(1, 3, 5, 7, 9)#c(1:10)
+        tg <- expand.grid(.mtry = mtries,
                           .splitrule = "extratrees",#c("variance", "extratrees"),
-                          .min.node.size = c(1:10))
+                          .min.node.size = mns)
         cl <- parallel::makeCluster(no_cores)
         #doParallel::registerDoParallel(cores = no_cores)
         doParallel::registerDoParallel(cl)

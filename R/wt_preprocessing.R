@@ -136,8 +136,6 @@ wt_preprocess <- function(catchment, data,
   data$Q_lag3 <- c(NA, data$Q_lag2[-nrow(data)])
   data$Q_lag4 <- c(NA, data$Q_lag3[-nrow(data)])
 
-  # Remove NAs
-  data <- data[!is.na(data$Qdiff), ]
   # Split: train_year_from to split_year; split_year+1 to last year of the data series
   # Split in 2/3 training and 1/3 validation
   cat("Split data into 2/3 training and 1/3 validation...\n")
