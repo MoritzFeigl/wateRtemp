@@ -161,21 +161,21 @@ lstm_metaf <- function(catchment,
     multiple_score <- data.frame("model" = model_name,
                                  "start_time" = as.character(start_time),
                                  "run_time" = run_time,
-                                 "timestep" = 1:n_predictions,
+                                 "time_step" = 1:n_predictions,
                                  "RMSE" = RMSE_LSTM_m,
                                  "NSE" = NSE_m)
 
 
-    if("multiple_score.csv" %in% list.files("LSTM")){
-      multiple_score_all <- read.csv(paste0(catchment, "LSTM/multiple_score.csv"))
+    if("multiple_score.csv" %in% list.files(paste0(catchment, "/LSTM"))){
+      multiple_score_all <- read.csv(paste0(catchment, "/LSTM/multiple_score.csv"))
       write.csv(rbind(multiple_score_all, multiple_score),
-                paste0(catchment, "LSTM/multiple_score.csv"))
+                paste0(catchment, "/LSTM/multiple_score.csv"), row.names = FALSE)
     } else {
-      write.csv(multiple_score, paste0(catchment, "LSTM/multiple_score.csv"))
+      write.csv(multiple_score, paste0(catchment, "/LSTM/multiple_score.csv"), row.names = FALSE)
     }
   }
 
-  if("model_scores.csv" %in% list.files("LSTM")){
+  if("model_scores.csv" %in% list.files(paste0(catchment, "/LSTM"))){
     model_scores <- read.csv(paste0(catchment, "/LSTM/model_scores.csv"))
 
     model_scores <- rbind(model_scores,
@@ -189,7 +189,7 @@ lstm_metaf <- function(catchment,
                                      #"validation_scaled_loss" = min(history$metrics$val_scaled_loss),
                                      "RMSE" = RMSE_LSTM,
                                      "NSE" = NSE))
-    write.csv(model_scores, paste0(catchment, "/LSTM/model_scores.csv"))
+    write.csv(model_scores, paste0(catchment, "/LSTM/model_scores.csv"), row.names = FALSE)
 
   } else {
     model_scores <- data.frame(model = model_name,
@@ -202,7 +202,7 @@ lstm_metaf <- function(catchment,
                                #"validation_scaled_loss" = min(history$metrics$val_scaled_loss),
                                "RMSE" = RMSE_LSTM,
                                "NSE" = NSE)
-    write.csv(model_scores, paste0(catchment, "/LSTM/model_scores.csv"))
+    write.csv(model_scores, paste0(catchment, "/LSTM/model_scores.csv"), row.names = FALSE)
 
   }
 
@@ -210,10 +210,10 @@ lstm_metaf <- function(catchment,
 
   # Training plot ------------------------------------------------------------------------
   png(paste0(catchment, "/LSTM/", model_name, "/", model_name, ".png"),
-      width = 1200, heigh = 1000)
+      width = 800, heigh = 600)
   #par(mfrow = c(2, 1), mar = c(2, 4, 5, 2))
-  plot(history$metrics$loss, xlab = "", main = "Model losses", ylim = c(0, max(history$metrics$loss)),
-       ylab = "loss", type="l", col="blue")
+  plot(history$metrics$loss, xlab = "epochs", main = "Model losse", ylim = c(0, max(history$metrics$loss)),
+       ylab = "model loss", type="l", col="blue")
   lines(history$metrics$val_loss, col = "darkgreen")
   legend("topright", c("training","validation"), col=c("blue", "darkgreen"), lty=c(1,1), bty = "n")
   # par(mar = c(5, 4, 2, 2))
