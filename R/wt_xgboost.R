@@ -25,21 +25,21 @@ wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n
   if(is.na(wrong_folder_catcher)) return(NA)
   # 1. Data --------------------------------------------------------------------------------
   if(is.null(data_inputs)){
-    warning('\nChoose a valid data_input:
+    stop('\nChoose a valid data_input:
             "simple"    = Q, Tmean and water temperatur observations
             "precip"    = "simple" + additional precipitation observations
             "radiation" = "simple" + additional longwave radiation observations
             "all"       = all the above mentioned observations')
   }
   if(sum(data_inputs %in% c("simple", "precip", "radiation", "all")) == 0){
-    warning('\nChoose a valid data_input:
+    stop('\nChoose a valid data_input:
             "simple"    = Q, Tmean and water temperatur observations
             "precip"    = "simple" + additional precipitation observations
             "radiation" = "simple" + additional longwave radiation observations
             "all"       = all the above mentioned observations')
   }
   if(sum(model_or_optim %in% c("model", "optim")) == 0){
-    warning('\nChoose a valid model_or_optim option:
+    stop('\nChoose a valid model_or_optim option:
             "model"    = pretrained model created with wt_xgboost will be loaded
             "optim"    = a new model with hyperparameter optimization will be trained')
   }

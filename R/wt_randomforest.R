@@ -1,7 +1,8 @@
 #' wt_RandomForest
 #'
 #' Random Forest modelling for water temperature data prepared with wt_preprocessing. Can either be used for loading pre-trained models or train a new model. The training is done in parallel and can take a while. Hyperparameter optimization is done by grid search.
-#' @param catchment Name of the folder with the data as a string.
+#' @param catchment Name of the folder with the data given as a string.
+#' @param data_inputs The kind of data to be used for the model run: "simple", "precip", "radiation", "all". See Details
 #' @param model_or_optim "model" if a pretrained model should be load, or "optim" if a new model should be trained
 #' @param cv_mode The crossvalidation scheme to be used. Can be either: "timeslice", or "repCV"
 #' @param no_cores Number of cores used for training as integer.
@@ -32,21 +33,21 @@ wt_randomforest <- function(catchment, data_inputs = NULL, model_or_optim, cv_mo
   if(is.na(wrong_folder_catcher)) return(NA)
   # 1. Data --------------------------------------------------------------------------------
   if(is.null(data_inputs)){
-    warning('\nChoose a valid data_input:
+    stop('\nChoose a valid data_input:
             "simple"    = Q, Tmean and water temperatur observations
             "precip"    = "simple" + additional precipitation observations
             "radiation" = "simple" + additional longwave radiation observations
             "all"       = all the above mentioned observations')
   }
   if(sum(data_inputs %in% c("simple", "precip", "radiation", "all")) == 0){
-    warning('\nChoose a valid data_input:
+    stop('\nChoose a valid data_input:
             "simple"    = Q, Tmean and water temperatur observations
             "precip"    = "simple" + additional precipitation observations
             "radiation" = "simple" + additional longwave radiation observations
             "all"       = all the above mentioned observations')
   }
   if(sum(model_or_optim %in% c("model", "optim")) == 0){
-    warning('\nChoose a valid model_or_optim option:
+    stop('\nChoose a valid model_or_optim option:
             "model"    = pretrained model created with wt_randomforest will be loaded
             "optim"    = a new model with hyperparameter optimization will be trained')
   }

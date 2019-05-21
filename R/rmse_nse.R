@@ -11,7 +11,7 @@ rmse_nse <- function(model, val){
   m_res <- val$wt - m_predict
   RMSE_m <- sqrt(mean(m_res^2, na.rm = TRUE))
   NSE <- 1 - (sum((m_predict- val$wt)^2, na.rm = TRUE) / sum( (val$wt - mean(val$wt, na.rm = TRUE))^2, na.rm = TRUE ) )
-  df <- data.frame("RMSE" = RMSE_m, "NSE" = NSE)
+  df <- data.frame("RMSE" = round(RMSE_m, 3), "NSE" = round(NSE, 3))
   rownames(df) <- model$method
   return(df)
 }
