@@ -4,10 +4,13 @@
 \alias{lstm_metaf}
 \title{lstm_metaf}
 \usage{
-lstm_metaf(x_train, y_train, x_val, y_val, data_inputs, train_mean,
-  train_sd, ts, u, bs, epochs, LSTM_type, n_predictions, n_features)
+lstm_metaf(catchment, x_train, y_train, x_val, y_val, data_inputs,
+  train_mean, train_sd, ts, u, bs, epochs, LSTM_type, n_predictions,
+  n_features)
 }
 \arguments{
+\item{catchment}{Name of the folder with the data given as a string.}
+
 \item{n_features}{}
 }
 \value{

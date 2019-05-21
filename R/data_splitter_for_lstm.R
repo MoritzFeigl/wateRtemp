@@ -16,6 +16,7 @@ data_splitter_for_lstm <- function(data){
   full_train <- merge(full_ts, data, by = "date", all = TRUE)
   # split data in sub time series without gaps
   missing_days <- unique(which(is.na(full_train), arr.ind = TRUE)[, 1])
+  if(length(missing_days) != 0){
   # remove consecutive missing days
   rm_ind <- integer()
   for(i in 2:(length(missing_days)-1)){
@@ -30,6 +31,10 @@ data_splitter_for_lstm <- function(data){
     } else {
       data_list[[i]] <- data[(cut_points[i-1]+1):(cut_points[i]-1), ]
     }
+  }
+  } else {
+    data_list <- vector(mode = "list")
+    data_list[[1]] <- data
   }
   return(data_list)
 }

@@ -9,7 +9,9 @@ wt_randomforest(catchment, data_inputs = NULL, model_or_optim, cv_mode,
   save_importance_plot = FALSE)
 }
 \arguments{
-\item{catchment}{Name of the folder with the data as a string.}
+\item{catchment}{Name of the folder with the data given as a string.}
+
+\item{data_inputs}{The kind of data to be used for the model run: "simple", "precip", "radiation", "all". See Details}
 
 \item{model_or_optim}{"model" if a pretrained model should be load, or "optim" if a new model should be trained}
 
