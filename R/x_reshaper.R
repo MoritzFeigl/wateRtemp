@@ -1,4 +1,4 @@
-#' Title
+#' x_reshaper
 #'
 #' Function for reshaping data for LSTM applications. x_reshaper reshapes the feature data to a 3D array of features with (number observations, timesteps, number of features). y_reshaper reshapes the the data to a 1D array with labels corresponding to the 3D feature array.
 #' @param x matrix with features for the LSTM

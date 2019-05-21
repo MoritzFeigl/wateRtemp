@@ -3,12 +3,12 @@
 #'
 #' @param catchment Name of the folder with the data given as a string.
 #' @param data_inputs The kind of data to be used for the model run: "simple", "precip", "radiation", "all". See Details
-#' @param ts
-#' @param u
-#' @param bs
-#' @param epochs
-#' @param LSTM_type
-#' @param n_predictions
+#' @param ts Number of timesteps used for prediction, integer
+#' @param u Number of units of the LSTM layers, integer
+#' @param bs batch size for training, integer
+#' @param epochs Number of epochs, integer
+#' @param lstm_layers Number of LSTM layers to use, integer
+#' @param n_predictions Number of timesteps to be predicted by LSTM, integer
 #'
 #' @return None
 #' @export
@@ -20,7 +20,7 @@ wt_lstm <- function(catchment,
                     u = c(30, 60, 90),
                     bs = c(10, 50, 100),
                     epochs = c(100),
-                    LSTM_type = NULL,
+                    lstm_layers = NULL,
                     n_predictions = c(1, 3, 7)){
 
   if(sum(list.files() %in% catchment) != 1){
@@ -36,12 +36,13 @@ wt_lstm <- function(catchment,
             "radiation" = "simple" + additional longwave radiation observations
             "all"       = all the above mentioned observations')
   }
-  if(is.null(LSTM_type)){
-    stop('\nChoose a valid LSTM_type or a vector of LSTM_types:
-            "lstm1" = 1 layer LSTM
-            "lstm2" = 2 layer LSTM
-            "lstm3" = 3 layer LSTM')
+  if(is.null(lstm_layers)){
+    stop('\nChoose a valid lstm_layers or a vector of lstm_layers:
+            1 = 1 layer LSTM
+            2 = 2 layer LSTM
+            3 = 3 layer LSTM')
   }
+  LSTM_type <- paste0("lstm", lstm_layers)
 
   # check if there is seperate radiation data
   rad_data <- length(list.files(pattern = "radiation_")) > 0
