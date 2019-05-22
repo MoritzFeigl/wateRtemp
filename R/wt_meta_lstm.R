@@ -119,8 +119,7 @@ lstm_metaf <- function(catchment,
     save_best_only = TRUE, save_weights_only = TRUE)
   early_stopping <- callback_early_stopping(monitor = "val_loss",
                                             patience = 5,
-                                            min_delta = 0.001,
-                                            restore_best_weights = TRUE)
+                                            min_delta = 0.001)
 
   history <- model %>% fit(
     x_train_arr, y_train_arr,
