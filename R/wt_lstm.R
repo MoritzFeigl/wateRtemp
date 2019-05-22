@@ -23,6 +23,9 @@ wt_lstm <- function(catchment,
                     lstm_layers = NULL,
                     n_predictions = c(1, 3, 7)){
 
+  if(sum(list.files() %in% catchment) < 1){
+    stop(paste0("ERROR: Cannot find catchment folder(s) in your current working directory."))
+  }
   if(is.null(data_inputs)){
     stop('\nChoose a valid data_input:
             "simple"    = Q, Tmean and water temperatur observations
@@ -36,14 +39,16 @@ wt_lstm <- function(catchment,
             2 = 2 LSTM layer
             3 = 3 LSTM layer')
   }
+  # variables for loop
+  data_inputs_meta <- data_inputs
 
   for(catchment in catchment){
-    for(data_inputs in data_inputs){
+    cat("*** Starting computation for catchment", catchment, "***\n")
+    for(data_inputs in data_inputs_meta){
       if(sum(list.files() %in% catchment) != 1){
         message(paste0("ERROR: There is no folder named ", catchment, " in your current working directory."))
         return()
       }
-
       LSTM_type <- paste0("lstm", lstm_layers)
 
       # check if there is seperate radiation data

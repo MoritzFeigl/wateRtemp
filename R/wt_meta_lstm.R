@@ -132,6 +132,10 @@ lstm_metaf <- function(catchment,
 
   # Model Scores -------------------------------------------------------------------------
   predict_LSTM <- predict(model, x_val_arr)
+  # save predicted values
+  feather::write_feather(data.frame("predicted_values" = predict_LSTM*train_sd + train_mean),
+                         paste0(catchment, "/LSTM/", model_name, "/predicted_values.feather"))
+  # scores
   residuals_LSTM <- (predict_LSTM*train_sd + train_mean) - (y_val_arr*train_sd + train_mean)
   MSE_LSTM <- mean(residuals_LSTM^2)
   RMSE_LSTM <- round(sqrt(mean(residuals_LSTM^2)), 3)
