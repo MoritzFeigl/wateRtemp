@@ -44,11 +44,11 @@ wt_lstm <- function(catchment,
 
   for(catchment in catchment){
     cat("*** Starting computation for catchment", catchment, "***\n")
-    for(data_inputs in data_inputs_meta){
       if(sum(list.files() %in% catchment) != 1){
         message(paste0("ERROR: There is no folder named ", catchment, " in your current working directory."))
-        return()
+        next
       }
+    for(data_inputs in data_inputs_meta){
       LSTM_type <- paste0("lstm", lstm_layers)
 
       # check if there is seperate radiation data

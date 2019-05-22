@@ -103,7 +103,6 @@ lstm_metaf <- function(catchment,
       layer_dense(units = n_predictions) %>%
       compile(loss = "mse",
               optimizer = optimizer)
-    #metric = scaled_loss)
   }
 
   # Training ------------------------------------------------------------------------------
@@ -211,7 +210,7 @@ lstm_metaf <- function(catchment,
   png(paste0(catchment, "/LSTM/", model_name, "/", model_name, ".png"),
       width = 800, heigh = 600)
   #par(mfrow = c(2, 1), mar = c(2, 4, 5, 2))
-  plot(history$metrics$loss, xlab = "epochs", main = "Model losse", ylim = c(0, max(history$metrics$loss)),
+  plot(history$metrics$loss, xlab = "epochs", main = "Model loss", ylim = c(0, max(history$metrics$loss)),
        ylab = "model loss", type="l", col="blue")
   lines(history$metrics$val_loss, col = "darkgreen")
   legend("topright", c("training","validation"), col=c("blue", "darkgreen"), lty=c(1,1), bty = "n")

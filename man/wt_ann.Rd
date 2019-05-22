@@ -13,3 +13,6 @@ wt_ann(catchment, data_inputs = NULL, model_or_optim, bs = c(10, 50,
 \description{
 wt_ann
 }
+\details{
+if ensemble_runs >= 100 only the best 10% are used for the prediction, if ensemble runs < 100, only the best 10 are used. In case there are less than 10 ensemble runs, all are used for prediction.
+}
