@@ -23,6 +23,20 @@ wt_lstm <- function(catchment,
                     lstm_layers = NULL,
                     n_predictions = c(1, 3, 7)){
 
+  if(is.null(data_inputs)){
+    stop('\nChoose a valid data_input:
+            "simple"    = Q, Tmean and water temperatur observations
+            "precip"    = "simple" + additional precipitation observations
+            "radiation" = "simple" + additional longwave radiation observations
+            "all"       = all the above mentioned observations')
+  }
+  if(is.null(lstm_layers)){
+    stop('\nChoose a valid lstm_layers or a vector of lstm_layers:
+            1 = 1 LSTM layer
+            2 = 2 LSTM layer
+            3 = 3 LSTM layer')
+  }
+
   for(catchment in catchment){
     for(data_inputs in data_inputs){
       if(sum(list.files() %in% catchment) != 1){
@@ -30,20 +44,6 @@ wt_lstm <- function(catchment,
         return()
       }
 
-
-      if(is.null(data_inputs)){
-        stop('\nChoose a valid data_input:
-            "simple"    = Q, Tmean and water temperatur observations
-            "precip"    = "simple" + additional precipitation observations
-            "radiation" = "simple" + additional longwave radiation observations
-            "all"       = all the above mentioned observations')
-      }
-      if(is.null(lstm_layers)){
-        stop('\nChoose a valid lstm_layers or a vector of lstm_layers:
-            1 = 1 layer LSTM
-            2 = 2 layer LSTM
-            3 = 3 layer LSTM')
-      }
       LSTM_type <- paste0("lstm", lstm_layers)
 
       # check if there is seperate radiation data

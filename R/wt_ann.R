@@ -96,6 +96,8 @@ wt_ann <- function(catchment,
     dir.create(file.path("checkpoints"))
   }
 
+  start_time <- Sys.time()
+
   # ANN ensemble aggregation (ensemble of equally structured ANNs with different initial weights)
   # First: Defining model and layers, Second: Training
   for(run in c(1:ensemble_runs)){
@@ -194,7 +196,9 @@ wt_ann <- function(catchment,
   RMSE <- sqrt(mean(residuals^2))
   NSE <- 1 - (sum((pred_results_mean_rescaled- y_val_rescaled)^2, na.rm = TRUE) /
                     sum( (y_val_rescaled - mean(y_val_rescaled, na.rm = TRUE))^2, na.rm = TRUE ) )
-
+  run_time <-  paste0(
+    round((as.numeric(Sys.time()) - as.numeric(start_time))/60, 2),
+    " minutes")
 
   if("model_scores.csv" %in% list.files("..")){
     model_scores <- read.csv("../model_scores.csv")
@@ -202,6 +206,8 @@ wt_ann <- function(catchment,
     model_scores <- rbind(model_scores,
                           data.frame(model = model_name,
                                      "data_inputs" = data_inputs,
+                                     "start_time" = as.character(start_time),
+                                     "run_time" = run_time,
                                      "ensemble_runs" = ensemble_runs,
                                      "epochs" = epochs,
                                      "batch_size" = bs,
@@ -213,6 +219,8 @@ wt_ann <- function(catchment,
   } else {
     model_scores <- data.frame(model = model_name,
                                "data_inputs" = data_inputs,
+                               "start_time" = as.character(start_time),
+                               "run_time" = run_time,
                                "ensemble_runs" = ensemble_runs,
                                "epochs" = epochs,
                                "batch_size" = bs,

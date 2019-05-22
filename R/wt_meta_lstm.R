@@ -58,7 +58,6 @@ lstm_metaf <- function(catchment,
 
   # Y arrays
   # single step prediction
-
   y_train_arr <- lapply(y_train, y_reshaper,
                         n_timesteps = n_timesteps, n_predictions = n_predictions)
   y_val_arr <- lapply(y_val, y_reshaper,
@@ -117,15 +116,15 @@ lstm_metaf <- function(catchment,
   model_checkpoint <- callback_model_checkpoint(
     filepath = paste0(catchment, "/LSTM/", model_name, "/", model_name, ".hdf5"),
     save_best_only = TRUE, save_weights_only = TRUE)
-  early_stopping <- callback_early_stopping(monitor = "val_loss",
-                                            patience = 5,
-                                            min_delta = 0.001)
+  #early_stopping <- callback_early_stopping(monitor = "val_loss",
+  #                                          patience = 5,
+  #                                          min_delta = 0.01)
 
   history <- model %>% fit(
     x_train_arr, y_train_arr,
     epochs = epochs,
     batch_size = batch_size,
-    callbacks = list(model_checkpoint, early_stopping),
+    callbacks = list(model_checkpoint),# early_stopping),
     validation_data = list(x_val_arr, y_val_arr)
   )
   #save_model_hdf5(model, paste0("LSTM/", model_name, ".hdf5"))
@@ -140,7 +139,7 @@ lstm_metaf <- function(catchment,
     1 - (sum((predict_LSTM- y_val_arr)^2, na.rm = TRUE) /
            sum( (y_val_arr - mean(y_val_arr, na.rm = TRUE))^2, na.rm = TRUE ) ),
     3)
-  run_time <-  paste0(
+  run_time <- paste0(
     round((as.numeric(Sys.time()) - as.numeric(start_time))/60, 2),
     " minutes")
 
@@ -204,9 +203,6 @@ lstm_metaf <- function(catchment,
     write.csv(model_scores, paste0(catchment, "/LSTM/model_scores.csv"), row.names = FALSE)
 
   }
-
-
-
   # Training plot ------------------------------------------------------------------------
   png(paste0(catchment, "/LSTM/", model_name, "/", model_name, ".png"),
       width = 800, heigh = 600)
@@ -215,10 +211,5 @@ lstm_metaf <- function(catchment,
        ylab = "model loss", type="l", col="blue")
   lines(history$metrics$val_loss, col = "darkgreen")
   legend("topright", c("training","validation"), col=c("blue", "darkgreen"), lty=c(1,1), bty = "n")
-  # par(mar = c(5, 4, 2, 2))
-  # plot(history$metrics$scaled_loss, ylim = c(0, max(history$metrics$scaled_loss)),
-  #      xlab = "Epoch", ylab = "scaled loss", type="l", col="blue")
-  # lines(history$metrics$val_scaled_loss, col = "darkgreen")
-  # legend("topright", c("training","validation"), col=c("blue", "darkgreen"), lty=c(1,1), bty = "n")
   dev.off()
 }
