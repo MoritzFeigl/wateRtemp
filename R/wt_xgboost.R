@@ -128,7 +128,7 @@ wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n
           n_seeds <- ceiling((nrow(ranger_train) - 730)/60)
           seeds <- vector(mode = "list", length = n_seeds)
           set.seed(1234)
-          for(i in 1:n_seeds) seeds[[i]] <- sample(10000, 60)
+          for(i in 1:n_seeds) seeds[[i]] <- sample(10000, 65)
           tc <- trainControl(method = "timeslice",
                              initialWindow = 730,
                              horizon = 90,
@@ -139,8 +139,9 @@ wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n
                              seeds = seeds)
         }
         if(cv_mode == "repCV"){
-          set.seed(1242)
-          seeds <- as.list(sample(10000, 51))
+          seeds <- vector(mode = "list", length = 51)
+          set.seed(1234)
+          for(i in 1:51) seeds[[i]] <- sample(10000, 65)
           tc <- trainControl(method = "repeatedcv",
                              number = 10,
                              repeats = 5,
