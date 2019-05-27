@@ -410,7 +410,8 @@ wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n
         cat("\nModel quality criteria: \nRMSE:", model_diagnostic$RMSE, "\n", "NSE:", model_diagnostic$NSE)
 
         if("model_scores.csv" %in% list.files(paste0(catchment, "/XGBoost"))){
-          model_scores <- read.csv(paste0(catchment, "/XGBoost/", "model_scores.csv"))
+          model_scores <- read.csv(paste0(catchment, "/XGBoost/", "model_scores.csv"),
+                                   stringsAsFactors = FALSE)
           write.csv(rbind(model_scores, model_diagnostic, stringsAsFactors = FALSE),
                     paste0(catchment, "/XGBoost/", "model_scores.csv"), row.names = FALSE)
         } else {

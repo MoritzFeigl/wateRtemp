@@ -42,11 +42,9 @@ wt_ann <- function(catchment,
     for(data_inputs in data_inputs_meta){
       model_name <- paste0(data_inputs, "Model_", epochs, "epochs_", bs, "bs_", ensemble_runs, "ensembleRuns")
       # check if there is seperate radiation data
-
       rad_data <- length(list.files(path = catchment, pattern = "radiation_")) > 0
 
       # in case of radiation or all data_input, load radiation data
-
       if(data_inputs == "radiation" & rad_data | data_inputs == "all" & rad_data){
         data_prefix <- "radiation_"
       } else {
