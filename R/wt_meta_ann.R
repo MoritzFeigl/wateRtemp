@@ -24,11 +24,11 @@ ann_metaf <- function(catchment, data_inputs,
     # Defining model and layers
     model <- keras_model_sequential()
     model %>%
-      layer_dense(units = 150, activation = 'selu', input_shape = c(n_features)) %>%
+      layer_dense(units = 300, activation = 'selu', input_shape = c(n_features)) %>%
       layer_dropout(rate = 0.3) %>%
-      layer_dense(units = 150, activation = 'relu') %>%
+      layer_dense(units = 300, activation = 'relu') %>%
       layer_dropout(rate = 0.1) %>%
-      layer_dense(units = 100, activation = 'relu') %>%
+      layer_dense(units = 150, activation = 'relu') %>%
       layer_dense(units = 50) %>%
       layer_dense(units = 1) %>%
       compile(loss = 'mean_squared_error',
@@ -69,11 +69,11 @@ ann_metaf <- function(catchment, data_inputs,
     #Create new model and predict using checkpoints
     new_model <- keras_model_sequential()
     new_model %>%
-      layer_dense(units = 150, activation = 'selu', input_shape = c(n_features)) %>%
+      layer_dense(units = 300, activation = 'selu', input_shape = c(n_features)) %>%
       layer_dropout(rate = 0.3) %>%
-      layer_dense(units = 150, activation = 'relu') %>%
+      layer_dense(units = 300, activation = 'relu') %>%
       layer_dropout(rate = 0.1) %>%
-      layer_dense(units = 100, activation = 'relu') %>%
+      layer_dense(units = 150, activation = 'relu') %>%
       layer_dense(units = 50) %>%
       layer_dense(units = 1) %>%
       compile(

@@ -74,7 +74,7 @@ wt_lm <- function(catchment, data_inputs = NULL, type = NULL, model_or_optim){
         # check if there is seperate radiation data
         rad_data <- length(list.files(path = catchment, pattern = "radiation_")) > 0
         # in case of radiation or all data_input, load radiation data
-        if(data_inputs == "radiation" | data_inputs == "all" & rad_data){
+        if(data_inputs == "radiation" & rad_data | data_inputs == "all" & rad_data){
           data_prefix <- "radiation_"
         } else {model_scores
           data_prefix <- ""

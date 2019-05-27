@@ -64,9 +64,9 @@ wt_randomforest <- function(catchment, data_inputs = NULL, model_or_optim, cv_mo
         model_name <- paste0(data_inputs, "Model_", cv_mode)
         cat("Loading catchment data.\n")
         # check if there is seperate radiation data
-        rad_data <- length(list.files(pattern = "radiation_")) > 0
+        rad_data <- length(list.files(catchment, pattern = "radiation_")) > 0
         # in case of radiation or all data_input, load radiation data
-        if(data_inputs == "radiation" | data_inputs == "all" & rad_data){
+        if(data_inputs == "radiation" & rad_data | data_inputs == "all" & rad_data){
           data_prefix <- "radiation_"
         } else {
           data_prefix <- ""
@@ -121,8 +121,8 @@ wt_randomforest <- function(catchment, data_inputs = NULL, model_or_optim, cv_mo
 
 
         # create folder
-        cat(paste0("Create random forest folder for catchment ", catchment, ".\n"))
         if(!file.exists(paste0(catchment, "/RF"))){
+        cat(paste0("Create random forest folder for catchment ", catchment, ".\n"))
           dir.create(file.path(paste0(catchment, "/RF")))
         }
 
@@ -148,8 +148,11 @@ wt_randomforest <- function(catchment, data_inputs = NULL, model_or_optim, cv_mo
                              seeds = seeds)
         }
         if(cv_mode == "repCV"){
-          set.seed(1242)
-          seeds <- as.list(sample(10000, 51))
+          # set.seed(1242)
+          # seeds <- as.list(sample(10000, 51))
+          seeds <- vector(mode = "list", length = 51)
+          set.seed(1234)
+          for(i in 1:51) seeds[[i]] <- sample(10000, 60)
           tc <- trainControl(method = "repeatedcv",
                              number = 10,
                              repeats = 5,
