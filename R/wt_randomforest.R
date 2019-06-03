@@ -137,7 +137,7 @@ wt_randomforest <- function(catchment, data_inputs = NULL, model_or_optim, cv_mo
           n_seeds <- ceiling((nrow(ranger_train) - 730)/60)
           seeds <- vector(mode = "list", length = n_seeds)
           set.seed(1234)
-          for(i in 1:n_seeds) seeds[[i]] <- sample(10000, 65)
+          for(i in 1:n_seeds) seeds[[i]] <- sample(10000, 100)
           tc <- trainControl(method = "timeslice",
                              initialWindow = 730,
                              horizon = 90,
@@ -152,7 +152,7 @@ wt_randomforest <- function(catchment, data_inputs = NULL, model_or_optim, cv_mo
           # seeds <- as.list(sample(10000, 51))
           seeds <- vector(mode = "list", length = 51)
           set.seed(1234)
-          for(i in 1:51) seeds[[i]] <- sample(10000, 65)
+          for(i in 1:51) seeds[[i]] <- sample(10000, 100)
           tc <- trainControl(method = "repeatedcv",
                              number = 10,
                              repeats = 5,
@@ -203,9 +203,9 @@ wt_randomforest <- function(catchment, data_inputs = NULL, model_or_optim, cv_mo
                                paste0(catchment, "/RF/", model_name, "/predicted_values.feather"))
         # scores
         model_diagnostic <- rmse_nse(model = ranger_fit, val = ranger_val)
-        model_diagnostic <- cbind(model = model_name,
+        model_diagnostic <- data.frame(model = model_name,
                                   model_diagnostic,
-                                  start_time = start_time,
+                                  start_time = as.character(start_time),
                                   run_time = run_time,
                                   mtry = ranger_fit$bestTune["mtry"],
                                   splitrule = ranger_fit$bestTune["splitrule"],

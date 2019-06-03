@@ -125,7 +125,7 @@ wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n
         cat("Chosen cross validation mode:", cv_mode, "\n")
         if(!(cv_mode %in% c("timeslice", "repCV"))) stop('cv_model can be either "timeslice" or "repCV"!')
         if(cv_mode == "timeslice"){
-          n_seeds <- ceiling((nrow(ranger_train) - 730)/60)
+          n_seeds <- ceiling((nrow(xgb_train) - 730)/60)
           seeds <- vector(mode = "list", length = n_seeds)
           set.seed(1234)
           for(i in 1:n_seeds) seeds[[i]] <- sample(10000, 65)
@@ -403,7 +403,7 @@ wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n
         # scores
         model_diagnostic <- rmse_nse(model = xgb_fit, val = xgb_val)
         model_diagnostic <- cbind(model = model_name,
-                                  start_time = start_time,
+                                  start_time = as.character(start_time),
                                   run_time = run_time,
                                   model_diagnostic,
                                   grid,
@@ -413,6 +413,7 @@ wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n
         if("model_scores.csv" %in% list.files(paste0(catchment, "/XGBoost"))){
           model_scores <- read.csv(paste0(catchment, "/XGBoost/", "model_scores.csv"),
                                    stringsAsFactors = FALSE)
+          model_scores$start_time <- as.character(model_scores$start_time)
           write.csv(rbind(model_scores, model_diagnostic, stringsAsFactors = FALSE),
                     paste0(catchment, "/XGBoost/", "model_scores.csv"), row.names = FALSE)
         } else {
