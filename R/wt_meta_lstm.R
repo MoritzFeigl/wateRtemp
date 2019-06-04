@@ -30,11 +30,10 @@ lstm_metaf <- function(catchment,
 
   model_name <- ifelse(n_predictions == 1,
                        paste0(data_inputs, "Model_", u, "units_", ts,
-                              "ts_", bs, "bs_",epochs, "epochs_",
-                              LSTM_type, "_single"),
+                              "ts_", LSTM_type, "_single"),
                        paste0(data_inputs, "Model_", u, "units_", ts,
-                              "ts_", bs, "bs_",epochs, "epochs_",
-                              LSTM_type, "_", n_predictions, "multiple"))
+                              "ts_", LSTM_type, "_", n_predictions, "multiple"))
+  folder_name <- paste0(epochs, "epochs_", bs, "batchsize")
   # Reshaping ----------------------------------------------------------------------------
   # remove all sub time series with length < ts + n_predictions
   train_long_ts <- sapply(x_train, nrow) >= (ts + n_predictions)
@@ -112,8 +111,12 @@ lstm_metaf <- function(catchment,
   if(!dir.exists(paste0(catchment, "/LSTM/", model_name))){
     dir.create(paste0(catchment, "/LSTM/", model_name))
   }
+  if(!dir.exists(paste0(catchment, "/LSTM/", model_name, "/", folder_name))){
+    dir.create(paste0(catchment, "/LSTM/", model_name, "/", folder_name))
+  }
+
   model_checkpoint <- callback_model_checkpoint(
-    filepath = paste0(catchment, "/LSTM/", model_name, "/", model_name, ".hdf5"),
+    filepath = paste0(catchment, "/LSTM/", model_name, "/", model_name, "/", folder_name, ".hdf5"),
     save_best_only = TRUE, save_weights_only = TRUE)
   #early_stopping <- callback_early_stopping(monitor = "val_loss",
   #                                          patience = 5,
@@ -133,7 +136,8 @@ lstm_metaf <- function(catchment,
   predict_LSTM <- predict(model, x_val_arr)
   # save predicted values
   feather::write_feather(data.frame("predicted_values" = predict_LSTM*train_sd + train_mean),
-                         paste0(catchment, "/LSTM/", model_name, "/predicted_values.feather"))
+                         paste0(catchment, "/LSTM/", model_name, "/",
+                                folder_name, "/predicted_values.feather"))
   # scores
   residuals_LSTM <- (predict_LSTM*train_sd + train_mean) - (y_val_arr*train_sd + train_mean)
   MSE_LSTM <- mean(residuals_LSTM^2)
@@ -198,6 +202,8 @@ lstm_metaf <- function(catchment,
                                "run_time" = run_time,
                                "n_timesteps" = ts,
                                "units" = u,
+                               "LSTM_type" = LSTM_type,
+                               "n_predictions" = n_predictions,
                                "batch_size" = bs,
                                "model_val_loss" = round(min(history$metrics$val_loss), 3),
                                #"validation_scaled_loss" = min(history$metrics$val_scaled_loss),
@@ -207,7 +213,7 @@ lstm_metaf <- function(catchment,
 
   }
   # Training plot ------------------------------------------------------------------------
-  png(paste0(catchment, "/LSTM/", model_name, "/", model_name, ".png"),
+  png(paste0(catchment, "/LSTM/", model_name, "/", folder_name, "/", model_name, ".png"),
       width = 800, heigh = 600)
   #par(mfrow = c(2, 1), mar = c(2, 4, 5, 2))
   plot(history$metrics$loss, xlab = "epochs", main = "Model loss", ylim = c(0, max(history$metrics$loss)),

@@ -138,29 +138,30 @@ wt_preprocess <- function(catchment, data,
 
   # Split: train_year_from to split_year; split_year+1 to last year of the data series
   # Split in 2/3 training and 1/3 validation
-  cat("Split data into 2/3 training and 1/3 validation...\n")
-  train_length <- floor((year_range[2] - year_range[1]) * 2/3)
+  cat("Split data into 80% training/validation and 20% testing...\n")
+  train_length <- floor((year_range[2] - year_range[1]) * 0.8)
   split_year <- year_range[1] + train_length
   train <- data[data$year <= split_year,]
-  val <- data[data$year > split_year,]
+  test <- data[data$year > split_year,]
   feather::write_feather(data, "input_data.feather")
   feather::write_feather(train, "train_data.feather")
-  feather::write_feather(val, "val_data.feather")
+  feather::write_feather(test, "test_data.feather")
 
   if(sum(is.na(data$GL)) > 0 & sum(is.na(data$GL)) != nrow(data)){
     cat("Preparing 2nd dataset with all radiation data...\n")
+    cat("Split data into 80% training/validation and 20% testing...\n")
     radiation_data <- data[!is.na(data$GL), ]
-    train_length <- floor((max(radiation_data$year) - min(radiation_data$year)) * 2/3)
+    train_length <- floor((max(radiation_data$year) - min(radiation_data$year)) * 0.8)
     split_year <- min(radiation_data$year) + train_length
     radiation_train <- radiation_data[radiation_data$year <= split_year,]
-    radiation_val <- radiation_data[radiation_data$year > split_year,]
+    radiation_test <- radiation_data[radiation_data$year > split_year,]
     cat("Storing preprocessed radiation data in catchment folder...\n")
     feather::write_feather(radiation_train, "train_radiation_data.feather")
-    feather::write_feather(radiation_val, "val_radiation_data.feather")
+    feather::write_feather(radiation_test, "test_radiation_data.feather")
   }
 
   cat("Done!")
   setwd(old_wd)
-  ###GL train und Val
+  ###GL train und test
 }
 

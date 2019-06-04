@@ -73,7 +73,7 @@ wt_randomforest <- function(catchment, data_inputs = NULL, model_or_optim, cv_mo
         }
         # load data
         train <- read_feather(paste0(catchment, "/train_", data_prefix, "data.feather"))
-        val <- read_feather(paste0(catchment, "/val_", data_prefix, "data.feather"))
+        test <- read_feather(paste0(catchment, "/test_", data_prefix, "data.feather"))
 
         if(data_inputs == "simple"){
           relevant_data <- c("year", "Q", "Tmean", "wt", "Qdiff", "Tmean_diff",
@@ -106,17 +106,17 @@ wt_randomforest <- function(catchment, data_inputs = NULL, model_or_optim, cv_mo
 
         # subset relevant features
         ranger_train <- train[, relevant_data]
-        ranger_val <- val[, relevant_data]
+        ranger_test <- test[, relevant_data]
         # remove NA rows resulting from Qdiff, Tmean_diff
         na_train <- which(is.na(ranger_train), arr.ind = TRUE)
         if(nrow(na_train) > 0){
           ranger_train <- ranger_train[-unique(na_train[,1]),]
           train <- train[-unique(na_train[,1]),]
         }
-        na_val <- which(is.na(ranger_val), arr.ind = TRUE)
-        if(nrow(na_val) > 0){
-          ranger_val <- ranger_val[-unique(na_val[,1]),]
-          val <- val[-unique(na_val[,1]),]
+        na_test <- which(is.na(ranger_test), arr.ind = TRUE)
+        if(nrow(na_test) > 0){
+          ranger_test <- ranger_test[-unique(na_test[,1]),]
+          test <- test[-unique(na_test[,1]),]
         }
 
 
@@ -198,11 +198,11 @@ wt_randomforest <- function(catchment, data_inputs = NULL, model_or_optim, cv_mo
         run_time <- paste0(round((as.numeric(Sys.time()) - as.numeric(start_time))/60, 2),
                            " minutes")
         # save predicted values
-        predict_RF <- predict(ranger_fit, ranger_val)
+        predict_RF <- predict(ranger_fit, ranger_test)
         feather::write_feather(data.frame("predicted_values" = predict_RF),
                                paste0(catchment, "/RF/", model_name, "/predicted_values.feather"))
         # scores
-        model_diagnostic <- rmse_nse(model = ranger_fit, val = ranger_val)
+        model_diagnostic <- rmse_nse(model = ranger_fit, val = ranger_test)
         model_diagnostic <- data.frame(model = model_name,
                                   model_diagnostic,
                                   start_time = as.character(start_time),
@@ -224,9 +224,9 @@ wt_randomforest <- function(catchment, data_inputs = NULL, model_or_optim, cv_mo
 
 
         if(plot_ts){
-          predict_ranger <- predict(ranger_fit, ranger_val)
-          pred_xts_ranger <- xts::xts(cbind(ranger_val, "predictions" = predict_ranger),
-                                      order.by = as.POSIXct(paste0(val$year, "-", val$mon, "-", val$day)))
+          predict_ranger <- predict(ranger_fit, ranger_test)
+          pred_xts_ranger <- xts::xts(cbind(ranger_test, "predictions" = predict_ranger),
+                                      order.by = as.POSIXct(paste0(test$year, "-", test$mon, "-", test$day)))
           print(dygraphs::dygraph(pred_xts_ranger[, c("wt", "predictions")], main = "Random forest prediction") %>%
                   dygraphs::dyRangeSelector())
         }

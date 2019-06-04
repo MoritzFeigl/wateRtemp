@@ -68,7 +68,7 @@ wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n
 
         #data <- read_feather(paste0("input_", data_prefix, "data.feather"))
         train <- read_feather(paste0(catchment, "/train_", data_prefix, "data.feather"))
-        val <- read_feather(paste0(catchment, "/val_", data_prefix, "data.feather"))
+        test <- read_feather(paste0(catchment, "/test_", data_prefix, "data.feather"))
 
         if(data_inputs == "simple"){
           relevant_data <- c("year", "Q", "Tmean", "wt", "Qdiff", "Tmean_diff",
@@ -100,17 +100,17 @@ wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n
         }
 
         xgb_train <- train[, relevant_data]
-        xgb_val <- val[, relevant_data]
+        xgb_test <- test[, relevant_data]
         # remove NA rows resulting from Qdiff, Tmean_diff
         na_train <- which(is.na(xgb_train), arr.ind = TRUE)
         if(nrow(na_train) > 0) {
           xgb_train <- xgb_train[-unique(na_train[,1]),]
           train <- train[-unique(na_train[,1]),]
         }
-        na_val <- which(is.na(xgb_val), arr.ind = TRUE)
-        if(nrow(na_val) > 0) {
-          xgb_val <- xgb_val[-unique(na_val[,1]),]
-          val <- val[-unique(na_val[,1]),]
+        na_test <- which(is.na(xgb_test), arr.ind = TRUE)
+        if(nrow(na_test) > 0) {
+          xgb_test <- xgb_test[-unique(na_test[,1]),]
+          test <- test[-unique(na_test[,1]),]
         }
 
         cat(paste0("Create XGBoost folder for catchment ", catchment, ".\n"))
@@ -397,11 +397,11 @@ wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n
         run_time <- paste0(round((as.numeric(Sys.time()) - as.numeric(start_time))/60, 2),
                            " minutes")
         # save predicted values
-        predict_xgb <- predict(xgb_fit, xgb_val)
+        predict_xgb <- predict(xgb_fit, xgb_test)
         feather::write_feather(data.frame("predicted_values" = predict_xgb),
                                paste0(catchment, "/XGBoost/", model_name, "/predicted_values.feather"))
         # scores
-        model_diagnostic <- rmse_nse(model = xgb_fit, val = xgb_val)
+        model_diagnostic <- rmse_nse(model = xgb_fit, val = xgb_test)
         model_diagnostic <- cbind(model = model_name,
                                   start_time = as.character(start_time),
                                   run_time = run_time,
@@ -422,9 +422,9 @@ wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n
 
 
         if(plot_ts){
-          predict_xgb <- predict(xgb_fit, xgb_val)
-          pred_xts_xgb <- xts::xts(cbind(xgb_val, "predictions" = predict_xgb),
-                                   order.by = as.POSIXct(paste0(val$year, "-", val$mon, "-", val$day)))
+          predict_xgb <- predict(xgb_fit, xgb_test)
+          pred_xts_xgb <- xts::xts(cbind(xgb_test, "predictions" = predict_xgb),
+                                   order.by = as.POSIXct(paste0(test$year, "-", test$mon, "-", test$day)))
           print(dygraphs::dygraph(pred_xts_xgb[, c("wt", "predictions")], main = "XGBoost prediction") %>%
                   dygraphs::dyRangeSelector())
         }

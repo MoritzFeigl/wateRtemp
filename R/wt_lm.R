@@ -3,13 +3,12 @@
 #' @param catchment Name of the folder containing the data. Given as a string
 #' @param data_inputs
 #' @param type
-#' @param model_or_optim
 #'
 #' @return
 #' @export
 #'
 #' @examples
-wt_lm <- function(catchment, data_inputs = NULL, type = NULL, model_or_optim){
+wt_lm <- function(catchment, data_inputs = NULL, type = NULL){
 
   if(sum(list.files() %in% catchment) < 1){
     stop(paste0("ERROR: Cannot find catchment folder(s) in your current working directory."))
@@ -29,11 +28,7 @@ wt_lm <- function(catchment, data_inputs = NULL, type = NULL, model_or_optim){
               "radiation" = "simple" + additional longwave radiation observations
               "all"       = all the above mentioned observations')
   }
-  if(sum(model_or_optim %in% c("model", "optim")) == 0){
-    stop('\nChoose a valid model_or_optim option:
-              "model"    = pretrained model created with wt_randomforest will be loaded
-              "optim"    = a new model with hyperparameter optimization will be trained')
-  }
+
   if(sum(type %in% c("lm", "step")) == 0){
     stop('\nChoose a valid type option:
 "lm"    = simple multiple linear model
@@ -54,17 +49,17 @@ wt_lm <- function(catchment, data_inputs = NULL, type = NULL, model_or_optim){
       message(paste0("ERROR: There is no folder named ", catchment, " in your current working directory."))
       next
     }
+    for(type in type_meta){
 
-      for(type in type_meta){
+      # only calculate all data inputs if type is "step"
+      if(type == "step"){
+        data_inputs_internal <- data_inputs_meta
+      } else {
+        cat('Type "lm" (simple linear model) will only be calculated using discharge and mean daily water temperature as predictors! For more predictor variables, choose the option type = "step"')
+        data_inputs_internal <- "simple"
+      }
 
-        # only calculate all data inputs if type is "step"
-        if(type == "step"){
-          data_inputs_internal <- data_inputs_meta
-        } else {
-          data_inputs_internal <- "simple"
-        }
-
-        for(data_inputs in data_inputs_internal){
+      for(data_inputs in data_inputs_internal){
         start_time <- Sys.time()
         if(type == "lm"){
           model_name <- "lm_model"
@@ -76,12 +71,15 @@ wt_lm <- function(catchment, data_inputs = NULL, type = NULL, model_or_optim){
         # in case of radiation or all data_input, load radiation data
         if(data_inputs == "radiation" & rad_data | data_inputs == "all" & rad_data){
           data_prefix <- "radiation_"
-        } else {model_scores
+        } else {
           data_prefix <- ""
         }
-        #data <- read_feather(paste0("input_", data_prefix, "data.feather"))
-        train <- read_feather(paste0(catchment, "/train_", data_prefix, "data.feather"))
-        val <- read_feather(paste0(catchment, "/val_", data_prefix, "data.feather"))
+        train <- feather::read_feather(paste0(catchment, "/train_", data_prefix, "data.feather"))
+        test <- feather::read_feather(paste0(catchment, "/test_", data_prefix, "data.feather"))
+        part_training <- nrow(train)/4 * 3
+        train_length <- floor(nrow(train) - part_training)
+        val <- train[(train_length + 1):nrow(train), ]
+        train <- train[1:train_length, ]
 
         if(type == "step"){
           if(data_inputs == "simple"){
@@ -116,13 +114,16 @@ wt_lm <- function(catchment, data_inputs = NULL, type = NULL, model_or_optim){
           relevant_data <- c("Q", "Tmean", "wt")
         }
 
-        train <- train[, relevant_data] # fuzzy
-        val <- val[, relevant_data] # fuzzy
+        train <- train[, relevant_data]
+        val <- val[, relevant_data]
+        test <- test[, relevant_data]
         # remove NA rows resulting from Qdiff, Tmean_diff
         na_train <- which(is.na(train), arr.ind = TRUE)
         if(nrow(na_train) > 0) train <- train[-unique(na_train[,1]),]
         na_val <- which(is.na(val), arr.ind = TRUE)
         if(nrow(na_val) > 0) val <- val[-na_val[,1],]
+        na_test <- which(is.na(test), arr.ind = TRUE)
+        if(nrow(na_test) > 0) test <- test[-na_test[,1],]
 
         if (!file.exists(paste0(catchment, "/LM"))){
           cat(paste0("Create LM folder for catchment ", catchment, ".\n"))
@@ -135,19 +136,22 @@ wt_lm <- function(catchment, data_inputs = NULL, type = NULL, model_or_optim){
 
         if(type == "lm"){
           lm_model <- lm(wt ~ Tmean + Q, train)
-          model_diagnostic <- rmse_nse(lm_model, val)
+          model_diagnostic_val <- rmse_nse(lm_model, val)
+          names(model_diagnostic_val) <- paste0(names(model_diagnostic_val), "_val")
+          model_diagnostic_test <- rmse_nse(lm_model, test)
           run_time <-  paste0(
             round((as.numeric(Sys.time()) - as.numeric(start_time))/60, 2),
             " minutes")
           # save predicted values
-          predict_lm <- predict(lm_model, val)
+          predict_lm <- predict(lm_model, test)
           feather::write_feather(data.frame("predicted_values" = predict_lm),
                                  paste0(catchment, "/LM/", model_name, "/predicted_values.feather"))
           # scores
           model_diagnostic <- cbind(model = model_name,
                                     start_time = as.character(start_time),
                                     run_time = run_time,
-                                    model_diagnostic,
+                                    model_diagnostic_val,
+                                    model_diagnostic_test,
                                     stringsAsFactors = FALSE)
           saveRDS(lm_model, paste0(catchment, "/LM/", model_name, "/lm_model.rds"))
         }
@@ -184,12 +188,14 @@ wt_lm <- function(catchment, data_inputs = NULL, type = NULL, model_or_optim){
           step_lm_model <- lm(step_formular, train)
           step_lm_model <- MASS::stepAIC(step_lm_model, direction = "both",
                                          trace = FALSE)
-          model_diagnostic <- rmse_nse(lm_model, val)
+          model_diagnostic_val <- rmse_nse(lm_model, val)
+          names(model_diagnostic_val) <- paste0(names(model_diagnostic_val), "_val")
+          model_diagnostic_test <- rmse_nse(lm_model, test)
           run_time <-  paste0(
             round((as.numeric(Sys.time()) - as.numeric(start_time))/60, 2),
             " minutes")
           # save predicted values
-          predict_lm <- predict(step_lm_model, val)
+          predict_lm <- predict(step_lm_model, test)
           feather::write_feather(data.frame("predicted_values" = predict_lm),
                                  paste0(catchment, "/LM/", model_name, "/predicted_values.feather"))
           # scores
@@ -197,7 +203,8 @@ wt_lm <- function(catchment, data_inputs = NULL, type = NULL, model_or_optim){
           model_diagnostic <- cbind(model = model_name,
                                     start_time = as.character(start_time),
                                     run_time = run_time,
-                                    model_diagnostic,
+                                    model_diagnostic_val,
+                                    model_diagnostic_test,
                                     stringsAsFactors = FALSE)
           saveRDS(step_lm_model, paste0(catchment, "/LM/", model_name, "/step_lm_model.rds"))
         }

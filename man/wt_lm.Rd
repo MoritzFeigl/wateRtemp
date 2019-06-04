@@ -4,12 +4,12 @@
 \alias{wt_lm}
 \title{wt_lm}
 \usage{
-wt_lm(catchment, data_inputs = NULL, type = NULL, model_or_optim)
+wt_lm(catchment, data_inputs = NULL, type = NULL)
 }
 \arguments{
 \item{catchment}{Name of the folder containing the data. Given as a string}
 
-\item{model_or_optim}{}
+\item{type}{}
 }
 \description{
 wt_lm

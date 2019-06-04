@@ -40,10 +40,8 @@ wt_ann <- function(catchment,
       next
     }
     for(data_inputs in data_inputs_meta){
-      model_name <- paste0(data_inputs, "Model_", epochs, "epochs_", bs, "bs_", ensemble_runs, "ensembleRuns")
       # check if there is seperate radiation data
       rad_data <- length(list.files(path = catchment, pattern = "radiation_")) > 0
-
       # in case of radiation or all data_input, load radiation data
       if(data_inputs == "radiation" & rad_data | data_inputs == "all" & rad_data){
         data_prefix <- "radiation_"
@@ -51,9 +49,12 @@ wt_ann <- function(catchment,
         data_prefix <- ""
       }
 
-      #data <- read_feather(paste0("input_", data_prefix, "data.feather"))
       train <- read_feather(paste0(catchment, "/train_", data_prefix, "data.feather"))
-      val <- read_feather(paste0(catchment, "/val_", data_prefix, "data.feather"))
+      test <- read_feather(paste0(catchment, "/test_", data_prefix, "data.feather"))
+      part_training <- nrow(train)/4 * 3
+      train_length <- floor(nrow(train) - part_training)
+      val <- train[(train_length + 1):nrow(train), ]
+      train <- train[1:train_length, ]
 
       if(data_inputs == "simple"){
         relevant_data <- c("Q", "Tmean", "wt")
@@ -74,36 +75,32 @@ wt_ann <- function(catchment,
 
       ann_train <- train[, relevant_data]
       ann_val <- val[, relevant_data]
+      ann_test <- test[, relevant_data]
       # Scaling
       train_mean <- mean(ann_train$wt)
       train_sd <- sd(ann_train$wt)
       ann_train[, relevant_data] <- scale(ann_train[, relevant_data])
       ann_val[, relevant_data[-3]] <- scale(ann_val[, relevant_data[-3]])
       ann_val$wt <- (ann_val$wt - train_mean)/train_sd
+      ann_test[, relevant_data[-3]] <- scale(ann_test[, relevant_data[-3]])
+      ann_test$wt <- (ann_test$wt - train_mean)/train_sd
 
       # As matrix
       ann_train <- as.matrix(ann_train)
       ann_val <- as.matrix(ann_val)
+      ann_test <- as.matrix(ann_test)
       # x: Q and Tmean, y: wt
       x_train <- ann_train[, relevant_data[-3]]
       y_train <- ann_train[, c("wt")]
       x_val <- ann_val[, relevant_data[-3]]
       y_val <- ann_val[, c("wt")]
+      x_test <- ann_test[, relevant_data[-3]]
+      y_test <- ann_test[, c("wt")]
 
       if(!file.exists(paste0(catchment, "/ANN"))){
         dir.create(file.path(paste0(catchment, "/ANN")))
       }
 
-      if(!file.exists(paste0(catchment, "/ANN/", model_name))){
-        dir.create(file.path(paste0(catchment, "/ANN/", model_name)))
-      }
-
-      if(!file.exists(paste0(catchment, "/ANN/", model_name, "/checkpoints"))){
-        dir.create(file.path(paste0(catchment, "/ANN/", model_name, "/checkpoints")))
-      }
-      if(!file.exists(paste0(catchment, "/ANN/", model_name, "/training_metrics"))){
-        dir.create(file.path(paste0(catchment, "/ANN/", model_name, "/training_metrics")))
-      }
 
 
       # Define grid and apply function
@@ -117,22 +114,12 @@ wt_ann <- function(catchment,
              ensemble_runs = grid$ensemble_runs,
              MoreArgs = list(catchment = catchment,
                              x_train = x_train, y_train = y_train,
-                             x_val = x_val, y_val = y_val, data_inputs = data_inputs,
+                             x_val = x_val, y_val = y_val,
+                             x_test = x_test, y_test = y_test,
+                             data_inputs = data_inputs,
                              train_mean = train_mean, train_sd = train_sd,
-                             n_features = n_features, model_name = model_name))
-
-
-
-
-
-
-
-
-
-
-
-
-
+                             n_features = n_features,
+                             test = test))
     }
   }
 }

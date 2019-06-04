@@ -60,9 +60,12 @@ wt_lstm <- function(catchment,
         data_prefix <- ""
       }
 
-      #data <- read_feather(paste0("input_", data_prefix, "data.feather"))
       train <- read_feather(paste0(catchment, "/train_", data_prefix, "data.feather"))
-      val <- read_feather(paste0(catchment, "/val_", data_prefix, "data.feather"))
+      test <- read_feather(paste0(catchment, "/test_", data_prefix, "data.feather"))
+      part_training <- nrow(train)/4 * 3
+      train_length <- floor(nrow(train) - part_training)
+      val <- train[(train_length + 1):nrow(train), ]
+      train <- train[1:train_length, ]
 
       if(data_inputs == "simple"){
         relevant_data <- c("date", "Q", "Tmean", "wt")
