@@ -5,7 +5,8 @@
 \title{wt_XGBoost}
 \usage{
 wt_xgboost(catchment, data_inputs = NULL, model_or_optim, cv_mode,
-  n_iter = 30, plot_ts = FALSE, save_importance_plot = FALSE)
+  n_iter = 30, plot_ts = FALSE, save_importance_plot = FALSE,
+  user_name = "R2D2")
 }
 \arguments{
 \item{catchment}{Name of the folder with the data as a string.}

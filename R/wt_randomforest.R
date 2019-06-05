@@ -22,7 +22,11 @@
 #'                 save_importance_plot = TRUE)
 #'
 wt_randomforest <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, no_cores = detectCores() - 1,
-                            plot_ts = FALSE, save_importance_plot = FALSE){
+                            plot_ts = FALSE, save_importance_plot = FALSE, user_name = "R2D2"){
+
+  if(user_name == "R2D2") cat('No user_name was chosen! Default user "R2D2" is running the model.\n')
+
+
   # 1. Data --------------------------------------------------------------------------------
   if(sum(list.files() %in% catchment) < 1){
     stop(paste0("ERROR: Cannot find catchment folder(s) in your current working directory."))
@@ -203,7 +207,8 @@ wt_randomforest <- function(catchment, data_inputs = NULL, model_or_optim, cv_mo
                                paste0(catchment, "/RF/", model_name, "/predicted_values.feather"))
         # scores
         model_diagnostic <- rmse_nse(model = ranger_fit, val = ranger_test)
-        model_diagnostic <- data.frame(model = model_name,
+        model_diagnostic <- data.frame(user_name = user_name,
+                                       model = model_name,
                                   model_diagnostic,
                                   start_time = as.character(start_time),
                                   run_time = run_time,

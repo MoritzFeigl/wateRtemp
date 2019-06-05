@@ -15,8 +15,9 @@
 #'
 #' @examples
 wt_xgboost <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, n_iter = 30,
-                       plot_ts = FALSE, save_importance_plot = FALSE){
+                       plot_ts = FALSE, save_importance_plot = FALSE, user_name = "R2D2"){
 
+  if(user_name == "R2D2") cat('No user_name was chosen! Default user "R2D2" is running the model.\n')
 
   # 1. Data --------------------------------------------------------------------------------
   if(sum(list.files() %in% catchment) < 1){

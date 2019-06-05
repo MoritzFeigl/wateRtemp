@@ -203,6 +203,7 @@ lstm_metaf <- function(catchment,
   }
   # choose best models
   best_model_preds_val <- predict_LSTM_val[, order(all_rmse_val) <= model_subset]
+  best_model_preds_test <- predict_LSTM_test[, order(all_rmse_val) <= model_subset]
 
   # Create vector with avg prediction of best 10% of the members (models) of the ensemble
   if(model_subset == ensemble_runs & model_subset > 1){
