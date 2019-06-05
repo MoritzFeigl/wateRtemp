@@ -21,7 +21,11 @@ wt_lstm <- function(catchment,
                     bs = c(10, 50, 100),
                     epochs = c(100),
                     lstm_layers = NULL,
-                    n_predictions = c(1, 3, 7)){
+                    n_predictions = c(1, 3, 7),
+                    ensemble_runs = 5,
+                    user_name = "R2D2"){
+
+  if(user_name == "R2D2") cat('No user_name was chosen! Default user "R2D2" is running the model.\n')
 
   if(sum(list.files() %in% catchment) < 1){
     stop(paste0("ERROR: Cannot find catchment folder(s) in your current working directory."))
@@ -63,7 +67,7 @@ wt_lstm <- function(catchment,
       train <- read_feather(paste0(catchment, "/train_", data_prefix, "data.feather"))
       test <- read_feather(paste0(catchment, "/test_", data_prefix, "data.feather"))
       part_training <- nrow(train)/4 * 3
-      train_length <- floor(nrow(train) - part_training)
+      train_length <- floor(part_training)
       val <- train[(train_length + 1):nrow(train), ]
       train <- train[1:train_length, ]
 
@@ -86,23 +90,28 @@ wt_lstm <- function(catchment,
 
       LSTM_train <- train[, relevant_data]
       LSTM_val <- val[, relevant_data]
+      LSTM_test <- test[, relevant_data]
       # Scaling
       train_mean <- mean(LSTM_train$wt)
       train_sd <- sd(LSTM_train$wt)
       LSTM_train[, relevant_data[-1]] <- scale(LSTM_train[, relevant_data[-1]])
       LSTM_val[, relevant_data[-c(1, 4)]] <- scale(LSTM_val[, relevant_data[-c(1, 4)]])
+      LSTM_test[, relevant_data[-c(1, 4)]] <- scale(LSTM_test[, relevant_data[-c(1, 4)]])
       LSTM_val$wt <- (LSTM_val$wt - train_mean)/train_sd
+      LSTM_test$wt <- (LSTM_test$wt - train_mean)/train_sd
 
 
       # check if there are time gaps in the data -> split
       train <- data_splitter_for_lstm(LSTM_train)
       val <- data_splitter_for_lstm(LSTM_val)
+      test <- data_splitter_for_lstm(LSTM_test)
 
       x_train <- lapply(train, function(x) as.matrix(x[, relevant_data[-c(1, 4)]]))
       y_train <- lapply(train, function(x) as.matrix(x[, c("wt")]))
       x_val <- lapply(val, function(x) as.matrix(x[, relevant_data[-c(1, 4)]]))
       y_val <- lapply(val, function(x) as.matrix(x[, c("wt")]))
-
+      x_test <- lapply(test, function(x) as.matrix(x[, relevant_data[-c(1, 4)]]))
+      y_test <- lapply(test, function(x) as.matrix(x[, c("wt")]))
       # Define grid and apply function
       grid <- expand.grid("ts" = ts,
                           "u" = u,
@@ -121,8 +130,10 @@ wt_lstm <- function(catchment,
              MoreArgs = list(catchment = catchment,
                              x_train = x_train, y_train = y_train,
                              x_val = x_val, y_val = y_val,
+                             x_test = x_test, y_test = y_test,
                              n_features = n_features, data_inputs = data_inputs,
-                             train_mean = train_mean, train_sd = train_sd))
+                             train_mean = train_mean, train_sd = train_sd,
+                             user_name = user_name, ensemble_runs = ensemble_runs))
     }
   }
 }

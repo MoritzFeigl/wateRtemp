@@ -15,10 +15,12 @@ ann_metaf <- function(catchment, data_inputs,
                       train_mean, train_sd,
                       x_train, y_train, x_val, y_val,
                       x_test, y_test,
-                      n_features, model_name){
+                      n_features, model_name, user_name){
 
+
+  # Folder structure ---------------------------------------------------------------------
   model_name <- paste0(data_inputs, "Model")
-  folder_name <- paste0(epochs, "epochs_", bs, "batchsize", ensemble_runs, "ensembleRuns")
+  folder_name <- paste0(epochs, "epochs_", bs, "batchsize_", ensemble_runs, "ensembleRuns")
 
   if(!file.exists(paste0(catchment, "/ANN/", model_name))){
     dir.create(file.path(paste0(catchment, "/ANN/", model_name)))
@@ -26,16 +28,20 @@ ann_metaf <- function(catchment, data_inputs,
   if(!file.exists(paste0(catchment, "/ANN/", model_name, "/", folder_name))){
     dir.create(file.path(paste0(catchment, "/ANN/", model_name, "/", folder_name)))
   }
-  if(!file.exists(paste0(catchment, "/ANN/", model_name, "/", folder_name, "/checkpoints"))){
-    dir.create(file.path(paste0(catchment, "/ANN/", model_name, "/", folder_name, "/checkpoints")))
+  if(!file.exists(paste0(catchment, "/ANN/", model_name, "/", folder_name,
+                         "/checkpoints"))){
+    dir.create(file.path(paste0(catchment, "/ANN/", model_name, "/",
+                                folder_name, "/checkpoints")))
   }
-  if(!file.exists(paste0(catchment, "/ANN/", model_name, "/", folder_name, "/training_metrics"))){
-    dir.create(file.path(paste0(catchment, "/ANN/", model_name, "/", folder_name, "/training_metrics")))
+  if(!file.exists(paste0(catchment, "/ANN/", model_name, "/", folder_name,
+                         "/training_metrics"))){
+    dir.create(file.path(paste0(catchment, "/ANN/", model_name, "/",
+                                folder_name, "/training_metrics")))
   }
 
   # start time
   start_time <- Sys.time()
-
+  # Training -----------------------------------------------------------------------------
   # ANN ensemble aggregation (ensemble of equally structured ANNs with different initial weights)
   # First: Defining model and layers, Second: Training
   for(run in c(1:ensemble_runs)){
@@ -65,7 +71,7 @@ ann_metaf <- function(catchment, data_inputs,
       validation_data = list(x_val, y_val),
       callbacks = list(ANN_checkpoint) # pass callback to training
     )
-    # Training plot ------------------------------------------------------------------------
+
     png(paste0(catchment, "/ANN/", model_name, "/", folder_name,
                "/training_metrics/plot_ensemble_member_", run, ".png"),
         width = 800, heigh = 600)
@@ -86,7 +92,7 @@ ann_metaf <- function(catchment, data_inputs,
       paste0('"', catchment, "/ANN/", model_name, "/", folder_name, '/training_metrics"\n'))
 
   # Creating ensemble from validation results
-  cat("\nCreating ensemble from validation results")
+  cat("\nCreating ensemble from validation results\n")
 
   network_evaluation <- function(new_run){
     #Create new model and predict using checkpoints
@@ -118,18 +124,13 @@ ann_metaf <- function(catchment, data_inputs,
   pred_results <- sapply(1:ensemble_runs, network_evaluation)
   pred_results <- as.data.frame(pred_results)
 
-  # Saving and calculating the mean of the prediction results (mean prediction of ANN ensemble aggregation)
-  feather::write_feather(pred_results,
-                         paste0(catchment, "/ANN/", model_name, "/", folder_name, "/",
-                                "ensemble_prediction_results_validation.feather"))
-
   # Calculating RMSE for all members of the ensemble
-  model_rmse <- function(model_pred){
-    residuals_model <- model_pred - y_val
+  model_rmse <- function(model_pred, y){
+    residuals_model <- model_pred - y
     RMSE <- sqrt(mean(residuals_model^2))
     return(RMSE)
   }
-  all_rmse <- apply(pred_results, 2, model_rmse)
+  all_rmse <- apply(pred_results, 2, model_rmse, y = y_val)
   # define model_subset depending on the number of ensembles
   if(ensemble_runs < 100){
     model_subset <- ifelse(ensemble_runs <= 10, ensemble_runs, 10)
@@ -185,11 +186,11 @@ ann_metaf <- function(catchment, data_inputs,
   residuals_val <- pred_results_mean_rescaled - y_val_rescaled
   RMSE_val <- sqrt(mean(residuals_val^2))
   NSE_val <- 1 - (sum((pred_results_mean_rescaled- y_val_rescaled)^2, na.rm = TRUE) /
-                sum( (y_val_rescaled - mean(y_val_rescaled, na.rm = TRUE))^2, na.rm = TRUE ) )
+                    sum( (y_val_rescaled - mean(y_val_rescaled, na.rm = TRUE))^2, na.rm = TRUE ) )
 
 
-  # Testing
-  cat("\nTESTING")
+  # Testing ------------------------------------------------------------------------------
+  cat("\nTESTING\n")
 
   network_testing <- function(test_run){
     #Create new model and predict using checkpoints
@@ -208,58 +209,76 @@ ann_metaf <- function(catchment, data_inputs,
 
     test_model %>% load_model_weights_hdf5(
       file.path(paste0(catchment, "/ANN/",
-                       model_name, "/", folder_name, "/checkpoints/", "ensemble_member",  test_run, ".hdf5"))
+                       model_name, "/", folder_name, "/checkpoints/", test_run))
     )
 
-    test_score <- test_model %>% evaluate(x_train, y_train, verbose = FALSE)
-    cat("Predict testing data with trained ensemble member", paste0(test_run, "/", ensemble_runs), "\n")
-    test_predict_ANN <- predict(test_model, x_train)
+    test_score <- test_model %>% evaluate(x_test, y_test, verbose = FALSE)
+    cat("Predict testing data with trained ensemble member", test_run, "\n")
+    test_predict_ANN <- predict(test_model, x_test)
     return(test_predict_ANN)
   }
+  # Prediction for all ensemble members with test data
+  test_checkpoints <- list.files(paste0(catchment, "/ANN/", model_name, "/", folder_name, "/checkpoints/"))
+  test_pred_results <- sapply(test_checkpoints, network_testing)
+  test_pred_results <- as.data.frame(test_pred_results)
 
-  test_pred_results <- sapply(1:ensemble_runs, network_testing)
-
-
-
-
-
-
+  # Mean prediction and model score
+  mean_test_pred_results <- apply(test_pred_results, 1, mean)
+  # rescale test results
+  test_pred_results_mean_rescaled <- mean_test_pred_results*train_sd + train_mean
+  y_test_rescaled <- y_test*train_sd + train_mean
+  # test model scores
+  residuals_test <- test_pred_results_mean_rescaled - y_test_rescaled
+  RMSE_test <- sqrt(mean(residuals_test^2))
+  NSE_test <- 1 - (sum((test_pred_results_mean_rescaled- y_test_rescaled)^2, na.rm = TRUE) /
+                     sum( (y_test_rescaled - mean(y_test_rescaled, na.rm = TRUE))^2, na.rm = TRUE ) )
   # Save predicted values
-  feather::write_feather(data.frame("predicted_values" = pred_results_mean_rescaled),
+  feather::write_feather(data.frame("predicted_values" = test_pred_results_mean_rescaled),
                          paste0(catchment, "/ANN/", model_name, "/", folder_name, "/predicted_values.feather"))
+
+  # rescale ensemble predictions
+  test_pred_results_rescaled <- test_pred_results*train_sd + train_mean
+  feather::write_feather(data.frame(test_pred_results_rescaled),
+                         paste0(catchment, "/ANN/", model_name, "/", folder_name, "/ensemble_predicted_values.feather"))
 
 
   run_time <-  paste0(
     round((as.numeric(Sys.time()) - as.numeric(start_time))/60, 2),
     " minutes")
 
+  # Model scores -------------------------------------------------------------------------
   # Saving model scores
   if("model_scores.csv" %in% list.files(paste0(catchment, "/ANN/"))){
     model_scores <- read.csv(paste0(catchment, "/ANN/model_scores.csv"))
 
     model_scores <- rbind(model_scores,
-                          data.frame(model = model_name,
+                          data.frame(user = user_name,
+                                     model = model_name,
                                      "data_inputs" = data_inputs,
                                      "start_time" = as.character(start_time),
                                      "run_time" = run_time,
                                      "ensemble_runs" = ensemble_runs,
                                      "epochs" = epochs,
                                      "batch_size" = bs,
-                                     "RMSE" = round(RMSE, 3),
-                                     "NSE" = round(NSE, 3)))
+                                     "RMSE_val" = round(RMSE_val, 3),
+                                     "NSE_val" = round(NSE_val, 3),
+                                     "RMSE_test" = round(RMSE_test, 3),
+                                     "NSE_test" = round(NSE_test, 3)))
     write.csv(model_scores, paste0(catchment, "/ANN/model_scores.csv"), row.names = FALSE)
 
   } else {
-    model_scores <- data.frame(model = model_name,
+    model_scores <- data.frame(user = user_name,
+                               model = model_name,
                                "data_inputs" = data_inputs,
                                "start_time" = as.character(start_time),
                                "run_time" = run_time,
                                "ensemble_runs" = ensemble_runs,
                                "epochs" = epochs,
                                "batch_size" = bs,
-                               "RMSE" = round(RMSE, 3),
-                               "NSE" = round(NSE, 3))
+                               "RMSE_val" = round(RMSE_val, 3),
+                               "NSE_val" = round(NSE_val, 3),
+                               "RMSE_test" = round(RMSE_test, 3),
+                               "NSE_test" = round(NSE_test, 3))
     write.csv(model_scores, paste0(catchment, "/ANN/model_scores.csv"), row.names = FALSE)
-
   }
 }

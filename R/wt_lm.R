@@ -77,7 +77,7 @@ wt_lm <- function(catchment, data_inputs = NULL, type = NULL){
         train <- feather::read_feather(paste0(catchment, "/train_", data_prefix, "data.feather"))
         test <- feather::read_feather(paste0(catchment, "/test_", data_prefix, "data.feather"))
         part_training <- nrow(train)/4 * 3
-        train_length <- floor(nrow(train) - part_training)
+        train_length <- floor(part_training)
         val <- train[(train_length + 1):nrow(train), ]
         train <- train[1:train_length, ]
 

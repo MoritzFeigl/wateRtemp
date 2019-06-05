@@ -18,7 +18,10 @@ wt_ann <- function(catchment,
                    model_or_optim,
                    bs = c(10, 50, 100),
                    epochs = c(100),
-                   ensemble_runs = 100){
+                   ensemble_runs = 100,
+                   user_name = "R2D2"){
+
+  if(user_name == "R2D2") cat('No user_name was chosen! Default user "R2D2" is running the model.\n')
 
   if(is.null(data_inputs)){
     stop('\nChoose a valid data_input:
@@ -52,7 +55,7 @@ wt_ann <- function(catchment,
       train <- read_feather(paste0(catchment, "/train_", data_prefix, "data.feather"))
       test <- read_feather(paste0(catchment, "/test_", data_prefix, "data.feather"))
       part_training <- nrow(train)/4 * 3
-      train_length <- floor(nrow(train) - part_training)
+      train_length <- floor(part_training)
       val <- train[(train_length + 1):nrow(train), ]
       train <- train[1:train_length, ]
 
@@ -118,8 +121,7 @@ wt_ann <- function(catchment,
                              x_test = x_test, y_test = y_test,
                              data_inputs = data_inputs,
                              train_mean = train_mean, train_sd = train_sd,
-                             n_features = n_features,
-                             test = test))
+                             n_features = n_features, user_name = user_name))
     }
   }
 }

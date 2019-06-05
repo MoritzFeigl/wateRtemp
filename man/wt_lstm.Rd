@@ -6,7 +6,8 @@
 \usage{
 wt_lstm(catchment, data_inputs = NULL, ts = c(30, 90, 180, 365),
   u = c(30, 60, 90), bs = c(10, 50, 100), epochs = c(100),
-  lstm_layers = NULL, n_predictions = c(1, 3, 7))
+  lstm_layers = NULL, n_predictions = c(1, 3, 7), ensemble_runs = 5,
+  user_name = "R2D2")
 }
 \arguments{
 \item{catchment}{Name of the folder with the data given as a string.}

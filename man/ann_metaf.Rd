@@ -6,7 +6,7 @@
 \usage{
 ann_metaf(catchment, data_inputs, bs, epochs, ensemble_runs, train_mean,
   train_sd, x_train, y_train, x_val, y_val, x_test, y_test, n_features,
-  model_name)
+  model_name, user_name)
 }
 \arguments{
 \item{ensemble_runs}{}
