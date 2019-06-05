@@ -1,4 +1,4 @@
-#' wt_XGBoost
+#' wt_xgboost
 #'
 #' XGBoost modelling for water temperature data prepared with wt_preprocessing. Can either be used for loading pre-trained models or train a new model. The training is done in parallel and can take a while. yperparameter optimization is done using grid search and the rBayesianOptimization packages.
 #' @param catchment Name of the folder with the data as a string.
