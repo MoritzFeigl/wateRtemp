@@ -15,7 +15,7 @@
 #'
 #' @examples
 wt_xgboost_simple <- function(catchment, data_inputs = NULL, model_or_optim, cv_mode, parameter_list,
-                       plot_ts = FALSE, save_importance_plot = FALSE, user_name = "R2D2"){
+                              plot_ts = FALSE, save_importance_plot = FALSE, user_name = "R2D2"){
 
   if(user_name == "R2D2") cat('No user_name was chosen! Default user "R2D2" is running the model.\n')
 
@@ -131,81 +131,77 @@ wt_xgboost_simple <- function(catchment, data_inputs = NULL, model_or_optim, cv_
           set.seed(1234)
           for(i in 1:n_seeds) seeds[[i]] <- sample(10000, 500)
           tc <- caret::trainControl(method = "timeslice",
-                             initialWindow = 730,
-                             horizon = 90,
-                             fixedWindow = FALSE,
-                             allowParallel = FALSE,
-                             verboseIter = TRUE,
-                             skip = 60,
-                             seeds = seeds)
+                                    initialWindow = 730,
+                                    horizon = 90,
+                                    fixedWindow = FALSE,
+                                    allowParallel = FALSE,
+                                    verboseIter = TRUE,
+                                    skip = 60,
+                                    seeds = seeds)
         }
         if(cv_mode == "repCV"){
           seeds <- vector(mode = "list", length = 51)
           set.seed(1234)
           for(i in 1:51) seeds[[i]] <- sample(10000, 500)
           tc <- caret::trainControl(method = "repeatedcv",
-                             number = 10,
-                             repeats = 5,
-                             allowParallel = FALSE,
-                             verboseIter = TRUE,
-                             seeds = seeds)
+                                    number = 10,
+                                    repeats = 5,
+                                    allowParallel = FALSE,
+                                    verboseIter = TRUE,
+                                    seeds = seeds)
 
         }
 
 
-          cat("Starting hyperparameter optimization\n -----------------------------------\n")
-          # 1. Choos eta = 0.05, and take two nrounds as initial values for optim.
-          #    All other parameters are on their default value
-          tg <- expand.grid(nrounds = 300,
-                            max_depth = parameter_list[["max_depth"]],
-                            eta = 0.15,
-                            gamma = parameter_list[["gamma"]],
-                            colsample_bytree = parameter_list[["colsample_bytree"]],
-                            subsample = parameter_list[["colsample_bytree"]],
-                            min_child_weight = parameter_list[["min_child_weight"]])
+        cat("Starting hyperparameter optimization\n -----------------------------------\n")
+        # 1. Choos eta = 0.05, and take two nrounds as initial values for optim.
+        #    All other parameters are on their default value
+        tg <- expand.grid(nrounds = 300,
+                          max_depth = parameter_list[["max_depth"]],
+                          eta = 0.15,
+                          gamma = parameter_list[["gamma"]],
+                          colsample_bytree = parameter_list[["colsample_bytree"]],
+                          subsample = parameter_list[["colsample_bytree"]],
+                          min_child_weight = parameter_list[["min_child_weight"]])
 
-          cat("1. Find optimal parameter set with eta = 0.15 and nrounds = 300")
+        cat("1. Find optimal parameter set with eta = 0.15 and nrounds = 300")
 
-          txt <- capture.output(xgb_fit <- caret::train(wt ~ .,
-                                                        data = xgb_train,
-                                                        method = "xgbTree",
-                                                        trControl = tc,
-                                                        tuneGrid = tg,
-                                                        num.threads = 1))
-          # get best model parameters
-          opt_parameter <- xgb_fit$bestTune
-          best_par <- data.frame(model = model_name,
-                                 nrounds = parameter_list[["nrounds"]],
-                                 max_depth = opt_parameter$max_depth,
-                                 eta = parameter_list[["eta"]],
-                                 gamma = opt_parameter$gamma,
-                                 colsample_bytree = opt_parameter$colsample_bytree,
-                                 subsample = opt_parameter$subsample,
-                                 min_child_weight = opt_parameter$min_child_weight)
-          cat("Finished model optimization, best parameters:\n")
-          for(i in 2:ncol(best_par)) cat(names(best_par)[i], ":", as.numeric(best_par[1, i]), "\n")
-          cat("2. Optimize best parameter set with eta =", best_par$eta, "and nrounds", best_par$nrounds)
-          # Optimize best_par with nrounds and eta
-          tg <- expand.grid(nrounds = parameter_list[["nrounds"]],
-                            max_depth = opt_parameter$max_depth,
-                            eta = parameter_list[["eta"]],
-                            gamma = opt_parameter$gamma,
-                            colsample_bytree = opt_parameter$colsample_bytree,
-                            subsample = opt_parameter$subsample,
-                            min_child_weight = opt_parameter$min_child_weight)
+        txt <- capture.output(xgb_fit <- caret::train(wt ~ .,
+                                                      data = xgb_train,
+                                                      method = "xgbTree",
+                                                      trControl = tc,
+                                                      tuneGrid = tg,
+                                                      num.threads = 1))
+        # get best model parameters
+        opt_parameter <- xgb_fit$bestTune
+        best_par <- data.frame(model = model_name,
+                               nrounds = parameter_list[["nrounds"]],
+                               max_depth = opt_parameter$max_depth,
+                               eta = parameter_list[["eta"]],
+                               gamma = opt_parameter$gamma,
+                               colsample_bytree = opt_parameter$colsample_bytree,
+                               subsample = opt_parameter$subsample,
+                               min_child_weight = opt_parameter$min_child_weight)
+        cat("Finished model optimization, best parameters:\n")
+        for(i in 2:ncol(best_par)) cat(names(best_par)[i], ":", as.numeric(best_par[1, i]), "\n")
+        cat("2. Optimize best parameter set with eta =", best_par$eta, "and nrounds", best_par$nrounds)
+        # Optimize best_par with nrounds and eta
+        tg <- expand.grid(nrounds = parameter_list[["nrounds"]],
+                          max_depth = opt_parameter$max_depth,
+                          eta = parameter_list[["eta"]],
+                          gamma = opt_parameter$gamma,
+                          colsample_bytree = opt_parameter$colsample_bytree,
+                          subsample = opt_parameter$subsample,
+                          min_child_weight = opt_parameter$min_child_weight)
 
-          txt <- capture.output(xgb_fit <- caret::train(wt ~ .,
-                                                        data = xgb_train,
-                                                        method = "xgbTree",
-                                                        trControl = tc,
-                                                        tuneGrid = tg,
-                                                        num.threads = 1))
-# define best parameters
-
-
-          feather::write_feather(best_par, paste0(catchment, "/XGBoost/", model_name,
-                                                  "/xgb_optimized_parameters.feather"))
-
+        txt <- capture.output(xgb_fit <- caret::train(wt ~ .,
+                                                      data = xgb_train,
+                                                      method = "xgbTree",
+                                                      trControl = tc,
+                                                      tuneGrid = tg,
+                                                      num.threads = 1))
+        feather::write_feather(best_par, paste0(catchment, "/XGBoost/", model_name,
+                                                "/xgb_optimized_parameters.feather"))
         # save model
         saveRDS(xgb_fit, paste0(catchment, "/XGBoost/", model_name,
                                 "/optimizedXGBoost_model.rds"))
@@ -260,13 +256,12 @@ wt_xgboost_simple <- function(catchment, data_inputs = NULL, model_or_optim, cv_
             ylab("Variable Importance")+
             xlab("")+
             ggtitle("Information Value Summary - XGBoost")+
-            guides(fill=F) +
+            guides(fill = FALSE) +
             scale_fill_gradient(low="red", high="blue")
           ggsave(filename = paste0(catchment, "/XGBoost/", model_name, "/XGB_importance_plot.png"), plot = p, device = "png",
                  dpi = "retina")
         }
       }
     }
-
   }
-  }
+}
