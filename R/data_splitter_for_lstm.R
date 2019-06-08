@@ -28,9 +28,16 @@ data_splitter_for_lstm <- function(data){
 
       # remove consecutive missing days
       rm_ind <- integer()
-      for(i in 2:(length(missing_days)-1)){
-        if(missing_days[i] - missing_days[i-1] <= 20 &
-           missing_days[i+1] - missing_days[i] <= 20) rm_ind <- c(rm_ind, i)
+      if(length(missing_days) == 2){
+        if(missing_days[2] - missing_days[1] <= 20) rm_ind <- c(rm_ind, i)
+      }
+
+
+      if(length(missing_days) > 2){
+        for(i in 2:(length(missing_days)-1)){
+          if(missing_days[i] - missing_days[i-1] <= 20 &
+             missing_days[i+1] - missing_days[i] <= 20) rm_ind <- c(rm_ind, i)
+        }
       }
       cut_points <- missing_days[-rm_ind]
       data_list <- vector(mode = "list")

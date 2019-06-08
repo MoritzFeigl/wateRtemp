@@ -8,7 +8,9 @@
 #' @export
 #'
 #' @examples
-wt_lm <- function(catchment, data_inputs = NULL, type = NULL){
+wt_lm <- function(catchment, data_inputs = NULL, type = NULL, user_name = "R2D2"){
+
+  if(user_name == "R2D2") cat('No user_name was chosen! Default user "R2D2" is running the model.\n')
 
   if(sum(list.files() %in% catchment) < 1){
     stop(paste0("ERROR: Cannot find catchment folder(s) in your current working directory."))
@@ -147,7 +149,8 @@ wt_lm <- function(catchment, data_inputs = NULL, type = NULL){
           feather::write_feather(data.frame("predicted_values" = predict_lm),
                                  paste0(catchment, "/LM/", model_name, "/predicted_values.feather"))
           # scores
-          model_diagnostic <- cbind(model = model_name,
+          model_diagnostic <- cbind(user_name = user_name,
+                                    model = model_name,
                                     start_time = as.character(start_time),
                                     run_time = run_time,
                                     model_diagnostic_val,
@@ -200,7 +203,8 @@ wt_lm <- function(catchment, data_inputs = NULL, type = NULL){
                                  paste0(catchment, "/LM/", model_name, "/predicted_values.feather"))
           # scores
 
-          model_diagnostic <- cbind(model = model_name,
+          model_diagnostic <- cbind(user_name = user_name,
+                                    model = model_name,
                                     start_time = as.character(start_time),
                                     run_time = run_time,
                                     model_diagnostic_val,

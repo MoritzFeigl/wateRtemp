@@ -10,48 +10,92 @@
 #' @export
 #'
 #' @examples
-wt_result_analysis <- function(catchment, model, cv_mode, plot){
-  old_wd <- getwd()
-  wrong_folder_catcher <- tryCatch({setwd(catchment)},
-                                   error = function(e) {
-                                     message(paste0("ERROR: There is no folder named ", catchment, " in your current working directory."))
-                                     return(NA)
-                                   })
-  if(is.na(wrong_folder_catcher)) return(NA)
-  # Data
-  cat("Loading catchment data.\n")
-  data <- read_feather("input_data_V2.feather")
-  train <- read_feather("train_data_V2.feather")
-  val <- read_feather("val_data_V2.feather")
+wt_result_analysis <- function(catchment, data_inputs, model, cv_mode, plot){
 
-  # library(dygraphs, quietly = TRUE)
+  if(sum(list.files() %in% catchment) < 1){
+    stop(paste0("ERROR: Cannot find catchment folder(s) in your current working directory."))
+  }
+  rad_data <- length(list.files(path = catchment, pattern = "radiation_")) > 0
+  # in case of radiation or all data_input, load radiation data
+  if(data_inputs == "radiation" & rad_data | data_inputs == "all" & rad_data){
+    data_prefix <- "radiation_"
+  } else {
+    data_prefix <- ""
+  }
+
+  train <- feather::read_feather(paste0(catchment, "/train_", data_prefix, "data.feather"))
+  test <- feather::read_feather(paste0(catchment, "/test_", data_prefix, "data.feather"))
+
+  model_folder <- paste0(catchment, "/", model, "/", data_inputs, "Model_", cv_mode, "/")
+  library(dygraphs, quietly = TRUE)
+  library(ggplot2, quietly = TRUE)
   # library(xts, quietly = TRUE)
   # library(tidyverse, quietly = TRUE)
   # library(caret, quietly = TRUE)
   # library(doParallel, quietly = TRUE)
+#
+#   sub_train <- train[, -c(1, 3, 4, 11, 14:56)] # fuzzy
+#   sub_val <- val[, -c(1, 3, 4, 11, 14:56)] # fuzzy
+#   # remove NA rows resulting from Qdiff, Tmean_diff
+#   na_train <- which(is.na(sub_train), arr.ind = TRUE)
+#   sub_train <- sub_train[-na_train[,1],]
+  na_rows <- which(is.na(test), arr.ind = TRUE)[,1]
+  test <- test[-na_rows, ]
+  prediction <- feather::read_feather(paste0(model_folder, "predicted_values.feather"))
+  names(prediction) <- "predictions"
 
 
-  sub_train <- train[, -c(1, 3, 4, 11, 14:56)] # fuzzy
-  sub_val <- val[, -c(1, 3, 4, 11, 14:56)] # fuzzy
-  # remove NA rows resulting from Qdiff, Tmean_diff
-  na_train <- which(is.na(sub_train), arr.ind = TRUE)
-  sub_train <- sub_train[-na_train[,1],]
 
-  setwd(file.path(model))
-  opt_model <- readRDS(paste0("optimized_", model, "_model_", cv_mode, ".rds"))
-  prediction <- predict(opt_model, sub_val)
+
 
   if(plot == "dygraph"){
-  pred_xts <- xts(cbind(sub_val, "predictions" = prediction),
-                         order.by = as.POSIXct(paste0(val$year, "-", val$mon, "-", val$day)))
-  print(dygraph(pred_xts[, c("wt", "predictions")]) %>%  dyRangeSelector())
+  pred_xts <- xts::xts(data.frame(test, prediction, Q2 = test$Q/50, RR2 = test$RR/50),
+                         order.by = as.POSIXct(paste0(test$year, "-", test$mon, "-", test$day)))
+  print(dygraphs::dygraph(pred_xts[, c("wt", "predictions", "Q2", "RR2", "Tmean")]) %>%  dygraphs::dyRangeSelector())
   }
 
   if(plot == "errors"){
-    error_df <- bind_cols(sub_val, "predictions" = prediction)
+    error_df <- dplyr::bind_cols(test, "predictions" = prediction)
     # define prediction error
     error_df$error <- error_df$predictions - error_df$wt
 
+    # NSE/RMSE
+    RMSE <- round(sqrt(mean(error_df$error^2, na.rm = TRUE)), 3)
+    NSE <- round(1 - (sum((error_df$predictions- error_df$wt)^2, na.rm = TRUE) / sum( (error_df$wt - mean(error_df$wt, na.rm = TRUE))^2, na.rm = TRUE ) ), 3)
+
+
+    # 1. Plot predictions vs. observations
+    ggplot(error_df, aes(x = wt, y = predictions)) + geom_point(col = "black", shape = 1) +
+      xlab("Observed water temp in °C") +
+      ylab("Predicted water temp in °C") +
+      geom_smooth(method = 'lm', formula =y~x) +
+      annotate("text", x = 2, y = max(error_df$predictions) , label = paste0("  RMSE = ", RMSE, "\nNSE = ", NSE))
+
+
+    # 2. Plot Zeitreihe
+    pred_xts <- xts::xts(data.frame(test, prediction),
+                         order.by = as.POSIXct(paste0(test$year, "-", test$mon, "-", test$day)))
+
+    years <- as.character(unique(error_df$year)[5])
+    ts_plot <- broom::tidy(pred_xts[, c("wt", "predictions")][years])
+    ts_plot$value <- as.numeric(ts_plot$value)
+    p1 <- ggplot(ts_plot, aes(x = index, y = value, color = series)) + geom_line()
+
+    # 3. Plot Wt + andere infos
+    ts_plot2 <- broom::tidy(pred_xts[, c("RR", "Q")][years])
+    ts_plot2$value <- as.numeric(ts_plot2$value)
+    p2 <- ggplot(ts_plot2, aes(x = index, y = value, color = series)) + geom_line()
+
+    figure <- ggpubr::ggarrange(p1, p2, ncol = 1, nrow = 2)
+
+    ggpubr::annotate_figure(figure,
+                    top = ggpubr::text_grob("Visualizing mpg", color = "red", face = "bold", size = 14),
+                    bottom = ggpubr::text_grob("Data source: \n mtcars data set", color = "blue",
+                                       hjust = 1, x = 1, face = "italic", size = 10),
+                    left = ggpubr::text_grob("Figure arranged using ggpubr", color = "green", rot = 90),
+                    right = "I'm done, thanks :-)!",
+                    fig.lab = "Figure 1", fig.lab.face = "bold"
+    )
     # AIR TEMPERATUR FOR PLOTTING --------------------------------------------------------
     # Tmean max value for cut
     if(max(ceiling(error_df$Tmean)) %% 2 == 0){
@@ -142,19 +186,19 @@ wt_result_analysis <- function(catchment, model, cv_mode, plot){
     ggplot(error_df, aes(tmean_bins, error, fill = mean_Tmean)) +
       geom_hline(yintercept = 0) + geom_boxplot() + coord_flip() +
       scale_fill_gradient2(low = "#0099FF", high = "#FF3300", na.value = "black") +
-      xlab("daily mean air temperature °C") + ylab("absolut prediction error in °C") +
+      xlab("daily mean air temperature °C") + ylab("prediction error in water temp. °C (prediction - observation)") +
       labs(fill = "daily mean \nair temp. °C")
 
     ggplot(error_df, aes(factor(tmean_bins2), error, fill = mean_Tmean2)) +
       geom_hline(yintercept = 0) + geom_boxplot() + coord_flip() +
       scale_fill_gradient2(low = "#0099FF", high = "#FF3300", na.value = "black") +
-      xlab("daily mean air temperature °C") + ylab("absolut prediction error in °C") +
+      xlab("daily mean air temperature °C") + ylab("prediction error in °C (prediction - observation)") +
       labs(fill = "daily mean \nair temp. °C")
 
     ggplot(error_df, aes(factor(tmean_bins5), error, fill = mean_Tmean5)) +
       geom_hline(yintercept = 0) + geom_boxplot() + coord_flip() +
       scale_fill_gradient2(low = "#0099FF", high = "#FF3300", na.value = "black") +
-      xlab("daily mean air temperature °C") + ylab("absolut prediction error in °C") +
+      xlab("daily mean air temperature °C") + ylab("prediction error in °C (prediction - observation)") +
       labs(fill = "daily mean \nair temp. °C")
 
     # To Anzahl Datenpunkte zu Boxplots schreiben
@@ -165,7 +209,7 @@ wt_result_analysis <- function(catchment, model, cv_mode, plot){
       scale_fill_gradient2(low = "#0099FF", high = "#FF3300",
                            midpoint = mean(error_df$wt),
                            na.value = "black", limits = c(0, NA)) +
-      xlab("daily mean water temperature °C") + ylab("absolut prediction error in °C") +
+      xlab("daily mean water temperature °C") + ylab("prediction error in °C (prediction - observation)") +
       labs(fill = "daily mean \nwater temp. °C")
 
     ggplot(error_df, aes(wt_bins2, error, fill = mean_wt2)) +
@@ -173,7 +217,7 @@ wt_result_analysis <- function(catchment, model, cv_mode, plot){
       scale_fill_gradient2(low = "#0099FF", high = "#FF3300",
                            midpoint = mean(error_df$wt),
                            na.value = "black", limits = c(0, NA)) +
-      xlab("daily mean water temperature °C") + ylab("absolut prediction error in °C") +
+      xlab("daily mean water temperature °C") + ylab("prediction error in °C (prediction - observation)") +
       labs(fill = "daily mean \nwater temp. °C")
 
     ggplot(error_df, aes(wt_bins5, error, fill = mean_wt5)) +
@@ -181,7 +225,7 @@ wt_result_analysis <- function(catchment, model, cv_mode, plot){
       scale_fill_gradient2(low = "#0099FF", high = "#FF3300",
                            midpoint = mean(error_df$wt),
                            na.value = "black", limits = c(0, NA)) +
-      xlab("daily mean water temperature °C") + ylab("absolut prediction error in °C") +
+      xlab("daily mean water temperature °C") + ylab("prediction error in °C (prediction - observation)") +
       labs(fill = "daily mean \nwater temp. °C")
 
 
@@ -199,20 +243,20 @@ wt_result_analysis <- function(catchment, model, cv_mode, plot){
     ggplot(error_df, aes(Q_bins, error)) +
       geom_boxplot() + coord_flip() +
       #scale_fill_gradient2(low = "#0099FF", high = "#FF3300", na.value = "black") +
-      xlab("daily mean runoff m³/s") + ylab("absolut prediction error in °C") +
+      xlab("daily mean runoff m³/s") + ylab("prediction error in °C (prediction - observation)") +
       geom_hline(yintercept = 0)
 
      # Runoff 10 bins vs error
     ggplot(error_df, aes(Q_bins10_low, error)) +
       geom_boxplot() + coord_flip() +
       #scale_fill_gradient2(low = "#0099FF", high = "#FF3300", na.value = "black") +
-      xlab("daily mean runoff m³/s") + ylab("absolut prediction error in °C") +
+      xlab("daily mean runoff m³/s") + ylab("prediction error in °C (prediction - observation)") +
       geom_hline(yintercept = 0)
 
     # Runoff 10 bins vs error - only low flows
     ggplot(error_df, aes(Q_bins10_low, error)) +
       geom_boxplot() + coord_flip() +
-      xlab("daily mean runoff m³/s") + ylab("absolut prediction error in °C") +
+      xlab("daily mean runoff m³/s") + ylab("prediction error in °C (prediction - observation)") +
       geom_hline(yintercept = 0) + xlim(levels(error_df$Q_bins10_low)[1:20])
 
 
@@ -221,7 +265,7 @@ wt_result_analysis <- function(catchment, model, cv_mode, plot){
       geom_hline(yintercept = 0) + geom_point() + xlim(0, 100) +
       scale_color_gradient2(low = "#0099FF", high = "#FF3300", na.value = "black",
                             midpoint = mean(error_df$wt)) +
-      labs(color = "daily mean \nwater temp. °C") + ylab("absolut prediction error in °C") +
+      labs(color = "daily mean \nwater temp. °C") + ylab("prediction error in °C (prediction - observation)") +
       xlab("daily mean runoff m³/s")
 
 
@@ -230,7 +274,7 @@ wt_result_analysis <- function(catchment, model, cv_mode, plot){
       geom_hline(yintercept = 0) + geom_point() + xlim(0, 100) +
       scale_color_gradient2(low = "#0099FF", high = "#FF3300", na.value = "black",
                             midpoint = mean(error_df$Tmean)) +
-      labs(color = "daily mean \nair temp. °C") + ylab("absolut prediction error in °C") +
+      labs(color = "daily mean \nair temp. °C") + ylab("prediction error in °C (prediction - observation)") +
       xlab("daily mean runoff m³/s")
 
     # Q, WT, Tmean -----------------------------

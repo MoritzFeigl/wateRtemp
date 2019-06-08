@@ -4,7 +4,7 @@
 \alias{wt_lm}
 \title{wt_lm}
 \usage{
-wt_lm(catchment, data_inputs = NULL, type = NULL)
+wt_lm(catchment, data_inputs = NULL, type = NULL, user_name = "R2D2")
 }
 \arguments{
 \item{catchment}{Name of the folder containing the data. Given as a string}
