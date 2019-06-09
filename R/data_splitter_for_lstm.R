@@ -29,7 +29,7 @@ data_splitter_for_lstm <- function(data){
       # remove consecutive missing days
       rm_ind <- integer()
       if(length(missing_days) == 2){
-        if(missing_days[2] - missing_days[1] <= 20) rm_ind <- c(rm_ind, i)
+        if(missing_days[2] - missing_days[1] <= 20) rm_ind <- c(rm_ind, 2)
       }
 
 
