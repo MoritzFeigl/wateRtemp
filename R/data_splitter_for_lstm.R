@@ -39,6 +39,8 @@ data_splitter_for_lstm <- function(data){
              missing_days[i+1] - missing_days[i] <= 20) rm_ind <- c(rm_ind, i)
         }
       }
+
+      # for all cut points create list entry with data until that point
       cut_points <- missing_days[-rm_ind]
       data_list <- vector(mode = "list")
       for(i in seq_along(cut_points)){
@@ -48,6 +50,8 @@ data_splitter_for_lstm <- function(data){
           data_list[[i]] <- data[(cut_points[i-1]+1):(cut_points[i]-1), ]
         }
       }
+      # for the last cut point also add the time from the last cutpoint to the end of the data
+        data_list[[length(data_list)]] <- data[(cut_points[length(cut_point)] + 1):nrow(data), ]
     }
   } else {
     data_list <- vector(mode = "list")

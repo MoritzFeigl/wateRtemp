@@ -10,12 +10,18 @@
 #' @export
 #'
 #' @examples
-wt_result_analysis <- function(catchment, data_inputs, model, cv_mode, plot){
+wt_result_analysis <- function(catchment, model, folder_name, epochs, bs, plot){
 
   if(sum(list.files() %in% catchment) < 1){
     stop(paste0("ERROR: Cannot find catchment folder(s) in your current working directory."))
   }
-  rad_data <- length(list.files(path = catchment, pattern = "radiation_")) > 0
+  input_init <- substr(as.character(folder_name), 1, 3)
+  if(input_init == "all") data_inputs <- "all"
+  if(input_init == "pre") data_inputs <- "precip"
+  if(input_init == "rad") data_inputs <- "radiation"
+  if(input_init == "sim") data_inputs <- "simple"
+  if(input_init == "lm_") data_inputs <- "simple"
+  rad_data <- length(list.files(path = as.character(catchment), pattern = "radiation_")) > 0
   # in case of radiation or all data_input, load radiation data
   if(data_inputs == "radiation" & rad_data | data_inputs == "all" & rad_data){
     data_prefix <- "radiation_"
@@ -25,33 +31,52 @@ wt_result_analysis <- function(catchment, data_inputs, model, cv_mode, plot){
 
   train <- feather::read_feather(paste0(catchment, "/train_", data_prefix, "data.feather"))
   test <- feather::read_feather(paste0(catchment, "/test_", data_prefix, "data.feather"))
+  if(model %in% c("LM", "RF", "XGBoost")){
+  if(sum(is.na(test)) > 0){
+  test <- test[which(!is.na(test$Qdiff)), ]
+  test <- test[which(!is.na(test$Tmean_diff)), ]
+  }
+}
+  # RF & XGBoost
+  if( model %in% c("RF", "XGBoost", "LM")){
+  model_folder <- paste0(catchment, "/", model, "/", folder_name, "/")
+  }
 
-  model_folder <- paste0(catchment, "/", model, "/", data_inputs, "Model_", cv_mode, "/")
+  if( model == "LSTM"){
+  model_folder <- paste0(catchment, "/", model, "/", folder_name, "/",
+                         paste0(epochs, "epochs_", bs, "batchsize/"))
+  }
+  if( model == "ANN"){
+    model_folder <- paste0(catchment, "/", model, "/", folder_name, "/",
+                           paste0(epochs, "epochs_", bs, "batchsize_100ensembleRuns/"))
+  }
+  if(model == "LSTM"){
+    tss <- unlist(strsplit(as.character(folder_name), "_"))[3]
+    ts <- as.integer(substr(tss, 1, nchar(tss)-2))
+    test <- test[(ts + 1):nrow(test),]
+  }
   library(dygraphs, quietly = TRUE)
   library(ggplot2, quietly = TRUE)
   # library(xts, quietly = TRUE)
   # library(tidyverse, quietly = TRUE)
   # library(caret, quietly = TRUE)
   # library(doParallel, quietly = TRUE)
-#
-#   sub_train <- train[, -c(1, 3, 4, 11, 14:56)] # fuzzy
-#   sub_val <- val[, -c(1, 3, 4, 11, 14:56)] # fuzzy
-#   # remove NA rows resulting from Qdiff, Tmean_diff
-#   na_train <- which(is.na(sub_train), arr.ind = TRUE)
-#   sub_train <- sub_train[-na_train[,1],]
-  na_rows <- which(is.na(test), arr.ind = TRUE)[,1]
-  test <- test[-na_rows, ]
+  #
+  #   sub_train <- train[, -c(1, 3, 4, 11, 14:56)] # fuzzy
+  #   sub_val <- val[, -c(1, 3, 4, 11, 14:56)] # fuzzy
+  #   # remove NA rows resulting from Qdiff, Tmean_diff
+  #   na_train <- which(is.na(sub_train), arr.ind = TRUE)
+  #   sub_train <- sub_train[-na_train[,1],]
+  #na_rows <- which(is.na(test), arr.ind = TRUE)[,1]
+  #test <- test[-na_rows, ]
   prediction <- feather::read_feather(paste0(model_folder, "predicted_values.feather"))
   names(prediction) <- "predictions"
 
 
-
-
-
   if(plot == "dygraph"){
-  pred_xts <- xts::xts(data.frame(test, prediction, Q2 = test$Q/50, RR2 = test$RR/50),
+    pred_xts <- xts::xts(data.frame(test, prediction),
                          order.by = as.POSIXct(paste0(test$year, "-", test$mon, "-", test$day)))
-  print(dygraphs::dygraph(pred_xts[, c("wt", "predictions", "Q2", "RR2", "Tmean")]) %>%  dygraphs::dyRangeSelector())
+    print(dygraphs::dygraph(pred_xts[, c("wt", "predictions", "Tmean")]) %>%  dygraphs::dyRangeSelector())
   }
 
   if(plot == "errors"){
@@ -66,37 +91,146 @@ wt_result_analysis <- function(catchment, data_inputs, model, cv_mode, plot){
 
     # 1. Plot predictions vs. observations
     ggplot(error_df, aes(x = wt, y = predictions)) + geom_point(col = "black", shape = 1) +
-      xlab("Observed water temp in °C") +
-      ylab("Predicted water temp in °C") +
+      xlab("observed water temp in °C") +
+      ylab("predicted water temp in °C") +
       geom_smooth(method = 'lm', formula =y~x) +
-      annotate("text", x = 2, y = max(error_df$predictions) , label = paste0("  RMSE = ", RMSE, "\nNSE = ", NSE))
+      annotate("text", x = min(error_df$wt) + 1, y = max(error_df$predictions) , label = paste0("  RMSE = ", RMSE, "\nNSE = ", NSE))
+    ggsave(paste0(model_folder, "correlation.png"))
 
 
     # 2. Plot Zeitreihe
     pred_xts <- xts::xts(data.frame(test, prediction),
                          order.by = as.POSIXct(paste0(test$year, "-", test$mon, "-", test$day)))
 
-    years <- as.character(unique(error_df$year)[5])
+    #years <- as.character(unique(error_df$year)[5])
+    years <- "2015"
     ts_plot <- broom::tidy(pred_xts[, c("wt", "predictions")][years])
     ts_plot$value <- as.numeric(ts_plot$value)
-    p1 <- ggplot(ts_plot, aes(x = index, y = value, color = series)) + geom_line()
+    ts_plot$series[ts_plot$series == "wt"] <- "observed"
+    ts_plot$series[ts_plot$series == "predictions"] <- model
+    names(ts_plot)[2] <- "legend"
+    p1 <- ggplot(ts_plot, aes(x = index, y = value, color = legend)) + geom_line() +
+      xlab("") + ylab("daily mean water temp. °C") +
+      scale_color_manual("", values = c("darkorchid2", "mediumseagreen"), labels = c(paste0(model, "  "),
+                                    "observed  ")) +
+      ggtitle(catchment) +
+      theme( legend.box.spacing = unit(0, 'cm'),
+             axis.title=element_text(size=9),
+             axis.text = element_text(size = 9),
+             plot.title = element_text(hjust = 0.5))
+
+
 
     # 3. Plot Wt + andere infos
-    ts_plot2 <- broom::tidy(pred_xts[, c("RR", "Q")][years])
-    ts_plot2$value <- as.numeric(ts_plot2$value)
-    p2 <- ggplot(ts_plot2, aes(x = index, y = value, color = series)) + geom_line()
+    ts_plot2 <- as.data.frame(pred_xts[, c("RR", "Q")][years], stringsAsFactors = FALSE)
+    ts_plot2$time <- as.POSIXct(row.names(ts_plot2))
+    ts_plot2$Q <- as.numeric(ts_plot2$Q)
 
-    figure <- ggpubr::ggarrange(p1, p2, ncol = 1, nrow = 2)
+    if(mean(ts_plot2$Q) > 1000){
+      ts_plot2$RR <- as.numeric(ts_plot2$RR)*200
+      p2 <- ggplot(ts_plot2, aes(x = time)) +
+        geom_col(aes( y = RR, fill = 'redfill')) +
+        geom_line(aes(y = Q, group = 1, color = 'blackline')) +
+        scale_y_continuous(sec.axis = sec_axis(trans = ~ . /200, name = "daily precipitation mm")) +
+        scale_fill_manual('', labels = 'P', values = "dodgerblue2") +
+        scale_color_manual('', labels = 'Q', values = 'black') +
+        xlab("") + ylab("daily mean runoff m³/s") +
+        theme(legend.margin = margin(-0.95,0,0,0, unit="cm"),
+              axis.title=element_text(size=9),
+              axis.text = element_text(size = 9))
+    } else if(mean(ts_plot2$Q) > 100) {
+      ts_plot2$RR <- as.numeric(ts_plot2$RR)*5
+      p2 <- ggplot(ts_plot2, aes(x = time)) +
+        geom_col(aes( y = RR, fill = 'redfill')) +
+        geom_line(aes(y = Q, group = 1, color = 'blackline')) +
+        scale_y_continuous(sec.axis = sec_axis(trans = ~ . /5, name = "daily precipitation mm")) +
+        scale_fill_manual('', labels = 'P', values = "dodgerblue2") +
+        scale_color_manual('', labels = 'Q', values = 'black') +
+        xlab("") + ylab("daily mean runoff m³/s") +
+        theme(legend.margin = margin(-0.95,0,0,0, unit="cm"))+
+        theme( legend.box.spacing = unit(0.5, 'cm'),
+               axis.title=element_text(size=9),
+               axis.text = element_text(size = 9))
 
-    ggpubr::annotate_figure(figure,
-                    top = ggpubr::text_grob("Visualizing mpg", color = "red", face = "bold", size = 14),
-                    bottom = ggpubr::text_grob("Data source: \n mtcars data set", color = "blue",
-                                       hjust = 1, x = 1, face = "italic", size = 10),
-                    left = ggpubr::text_grob("Figure arranged using ggpubr", color = "green", rot = 90),
-                    right = "I'm done, thanks :-)!",
-                    fig.lab = "Figure 1", fig.lab.face = "bold"
-    )
-    # AIR TEMPERATUR FOR PLOTTING --------------------------------------------------------
+    } else {
+      ts_plot2$RR <- as.numeric(ts_plot2$RR)*2
+      p2 <- ggplot(ts_plot2, aes(x = time)) +
+        geom_col(aes( y = RR, fill = 'redfill')) +
+        geom_line(aes(y = Q, group = 1, color = 'blackline')) +
+        scale_y_continuous(sec.axis = sec_axis(trans = ~ . /2, name = "daily precipitation mm")) +
+        scale_fill_manual('', labels = 'P', values = "dodgerblue2") +
+        scale_color_manual('', labels = 'Q', values = 'black') +
+        xlab("") + ylab("daily mean runoff m³/s") +
+        theme(legend.margin = margin(-0.95,0,0,0, unit="cm"),
+              axis.title=element_text(size=9),
+              axis.text = element_text(size = 9))
+    }
+
+
+    # figure <- ggpubr::ggarrange(p1, p2, ncol = 1, nrow = 2)
+    # ggpubr::annotate_figure(figure,
+    #                         top = ggpubr::text_grob(catchment, color = "black", face = "bold", size = 14, hjust = 1.9)
+    #                         #bottom = ggpubr::text_grob("Data source: \n mtcars data set", color = "blue",
+    #                         #                           hjust = 1, x = 1, face = "italic", size = 10),
+    #                         #left = ggpubr::text_grob("Figure arranged using ggpubr", color = "green", rot = 90),
+    #                         #right = "I'm done, thanks :-)!",
+    #                         #fig.lab = "Figure 1", fig.lab.face = "bold"
+    # )
+    # ggsave(paste0(model_folder, "ts_2015.png"))
+
+
+
+
+
+
+    years <- "2015"
+    ts_plot3 <- broom::tidy(pred_xts[, c("GL")][years])
+    ts_plot3$value <- as.numeric(ts_plot3$value)
+
+    #ts_plot$series[ts_plot$series == "wt"] <- "observed"
+    #ts_plot$series[ts_plot$series == "predictions"] <- model
+    #names(ts_plot)[2] <- "legend"
+
+
+
+
+     ts_plot3 <- as.data.frame(pred_xts[, c("GL", "Tmean")][years], stringsAsFactors = FALSE)
+     ts_plot3$time <- as.POSIXct(row.names(ts_plot3))
+     ts_plot3$GL <- as.numeric(ts_plot3$GL)
+     ts_plot3$Tmean <- as.numeric(ts_plot3$Tmean) * 30
+
+
+     temp_scale <- seq(floor(min(ts_plot3$Tmean/30)/5)*5, to = ceiling(max(ts_plot3$Tmean/30)/5)*5, by = 5)
+
+       p3 <- ggplot(ts_plot3, aes(x = time)) +
+       geom_line(aes(y = GL, color = "chocolate1")) +
+       geom_line(aes(y = Tmean, color = "brown1")) +
+       scale_y_continuous(sec.axis = sec_axis(trans = ~ . /30 ,
+                                              breaks = temp_scale,
+                                              name = "daily mean air temperature °C")) +
+       scale_color_manual("", labels = c("T", "GL"),
+                          values = c("brown1", "olivedrab3")) +
+       xlab("") + ylab("daily mean global radiation W/m²") +
+       theme(legend.margin = margin(-0.95,0,0,0, unit="cm"),
+             axis.title=element_text(size=9),
+             axis.text = element_text(size = 9))
+
+
+
+     figure2 <- ggpubr::ggarrange(p1, p2, p3, ncol = 1, nrow = 3)
+     #ggpubr::annotate_figure(figure2,
+                             #top = ggpubr::text_grob(catchment, color = "black", face = "bold", size = 14, hjust = 1.9)
+                             #bottom = ggpubr::text_grob("Data source: \n mtcars data set", color = "blue",
+                             #                           hjust = 1, x = 1, face = "italic", size = 10),
+                             #left = ggpubr::text_grob("Figure arranged using ggpubr", color = "green", rot = 90),
+                             #right = "I'm done, thanks :-)!",
+                             #fig.lab = "Figure 1", fig.lab.face = "bold"
+     #)
+     ggsave(paste0(model_folder, "ts_radiation_2015.png"), height = 20, width = 25, units = "cm")
+
+
+
+    # AIR TEMPERATUR FOR PLOTTING --------------- -----------------------------------------
     # Tmean max value for cut
     if(max(ceiling(error_df$Tmean)) %% 2 == 0){
       tmean_max_bin <- max(ceiling(error_df$Tmean))
@@ -176,11 +310,12 @@ wt_result_analysis <- function(catchment, data_inputs, model, cv_mode, plot){
     # Q bins 100
     # get max 100 Q
     max_q <- ceiling(max(error_df$Q)/100)*100
-    error_df$Q_bins <- cut(error_df$Q, seq(0, max_q, 100))
+    error_df$Q_bins <- cut(error_df$Q, seq(0, max_q, 100), dig.lab=10)
 
     # Q bins 10
     # get max 100 Q
-    error_df$Q_bins10_low <- cut(error_df$Q, seq(0, max_q, 10))
+    min_q <- floor(min(error_df$Q)/10)*10
+    error_df$Q_bins10_low <- cut(error_df$Q, seq(min_q, max_q, 10), dig.lab=10)
 
     # Air Temperature influence on prediction --------------------------------------------
     ggplot(error_df, aes(tmean_bins, error, fill = mean_Tmean)) +
@@ -200,7 +335,7 @@ wt_result_analysis <- function(catchment, data_inputs, model, cv_mode, plot){
       scale_fill_gradient2(low = "#0099FF", high = "#FF3300", na.value = "black") +
       xlab("daily mean air temperature °C") + ylab("prediction error in °C (prediction - observation)") +
       labs(fill = "daily mean \nair temp. °C")
-
+    ggsave(paste0(model_folder, "Tmean_vs_error.png"))
     # To Anzahl Datenpunkte zu Boxplots schreiben
 
     # water Temperature influence on prediction --------------------------------------------
@@ -227,7 +362,7 @@ wt_result_analysis <- function(catchment, data_inputs, model, cv_mode, plot){
                            na.value = "black", limits = c(0, NA)) +
       xlab("daily mean water temperature °C") + ylab("prediction error in °C (prediction - observation)") +
       labs(fill = "daily mean \nwater temp. °C")
-
+    ggsave(paste0(model_folder, "wt_vs_error.png"))
 
     # Runoff vs error vs water temp - only Q<100
     ggplot(error_df, aes(wt, error, col = Tmean)) + geom_point()  +
@@ -245,8 +380,8 @@ wt_result_analysis <- function(catchment, data_inputs, model, cv_mode, plot){
       #scale_fill_gradient2(low = "#0099FF", high = "#FF3300", na.value = "black") +
       xlab("daily mean runoff m³/s") + ylab("prediction error in °C (prediction - observation)") +
       geom_hline(yintercept = 0)
-
-     # Runoff 10 bins vs error
+    ggsave(paste0(model_folder, "Q100_vs_error.png"))
+    # Runoff 10 bins vs error
     ggplot(error_df, aes(Q_bins10_low, error)) +
       geom_boxplot() + coord_flip() +
       #scale_fill_gradient2(low = "#0099FF", high = "#FF3300", na.value = "black") +
@@ -258,6 +393,7 @@ wt_result_analysis <- function(catchment, data_inputs, model, cv_mode, plot){
       geom_boxplot() + coord_flip() +
       xlab("daily mean runoff m³/s") + ylab("prediction error in °C (prediction - observation)") +
       geom_hline(yintercept = 0) + xlim(levels(error_df$Q_bins10_low)[1:20])
+    ggsave(paste0(model_folder, "Q10_vs_error.png"))
 
 
     # Runoff vs error vs water temp - only Q<100
