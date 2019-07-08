@@ -4,7 +4,7 @@
 \alias{wt_result_analysis}
 \title{wt_result_analysis}
 \usage{
-wt_result_analysis(catchment, data_inputs, model, cv_mode, plot)
+wt_result_analysis(catchment, model, folder_name, epochs, bs, plot)
 }
 \arguments{
 \item{plot}{}

@@ -133,7 +133,8 @@ wt_lstm <- function(catchment,
                              x_test = x_test, y_test = y_test,
                              n_features = n_features, data_inputs = data_inputs,
                              train_mean = train_mean, train_sd = train_sd,
-                             user_name = user_name, ensemble_runs = ensemble_runs))
+                             user_name = user_name, ensemble_runs = ensemble_runs,
+                             test = test))
     }
   }
 }

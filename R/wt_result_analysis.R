@@ -50,11 +50,11 @@ wt_result_analysis <- function(catchment, model, folder_name, epochs, bs, plot){
     model_folder <- paste0(catchment, "/", model, "/", folder_name, "/",
                            paste0(epochs, "epochs_", bs, "batchsize_100ensembleRuns/"))
   }
-  if(model == "LSTM"){
-    tss <- unlist(strsplit(as.character(folder_name), "_"))[3]
-    ts <- as.integer(substr(tss, 1, nchar(tss)-2))
-    test <- test[(ts + 1):nrow(test),]
-  }
+  # if(model == "LSTM"){
+  #   tss <- unlist(strsplit(as.character(folder_name), "_"))[3]
+  #   ts <- as.integer(substr(tss, 1, nchar(tss)-2))
+  #   test <- test[(ts + 1):nrow(test),]
+  # }
   library(dygraphs, quietly = TRUE)
   library(ggplot2, quietly = TRUE)
   # library(xts, quietly = TRUE)
