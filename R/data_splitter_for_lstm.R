@@ -51,7 +51,7 @@ data_splitter_for_lstm <- function(data){
         }
       }
       # for the last cut point also add the time from the last cutpoint to the end of the data
-        data_list[[length(data_list)]] <- data[(cut_points[length(cut_point)] + 1):nrow(data), ]
+        data_list[[length(data_list) + 1]] <- data[(cut_points[length(cut_points)] + 1):nrow(data), ]
     }
   } else {
     data_list <- vector(mode = "list")

@@ -32,11 +32,11 @@ wt_result_analysis <- function(catchment, model, folder_name, epochs, bs, plot){
   train <- feather::read_feather(paste0(catchment, "/train_", data_prefix, "data.feather"))
   test <- feather::read_feather(paste0(catchment, "/test_", data_prefix, "data.feather"))
   if(model %in% c("LM", "RF", "XGBoost")){
-  if(sum(is.na(test)) > 0){
-  test <- test[which(!is.na(test$Qdiff)), ]
-  test <- test[which(!is.na(test$Tmean_diff)), ]
+    if(sum(is.na(test)) > 0){
+      test <- test[which(!is.na(test$Qdiff)), ]
+      test <- test[which(!is.na(test$Tmean_diff)), ]
+    }
   }
-}
   # RF & XGBoost
   if( model %in% c("RF", "XGBoost", "LM")){
   model_folder <- paste0(catchment, "/", model, "/", folder_name, "/")
@@ -72,7 +72,65 @@ wt_result_analysis <- function(catchment, model, folder_name, epochs, bs, plot){
   prediction <- feather::read_feather(paste0(model_folder, "predicted_values.feather"))
   names(prediction) <- "predictions"
 
+  # # Fix LSTM problem ######################
+  # data <- test[, c("date", "wt")]
+  # full_ts <- data.frame(
+  #   date = as.character(format.POSIXct(
+  #     seq(data$date[1], data$date[nrow(data)], by = "day"),
+  #     format = "%Y-%m-%d"), stringsAsFactors = FALSE))
+  # data$date <- as.character(data$date)
+  # # merge with data
+  # full_train <- merge(full_ts, data, by = "date", all = TRUE)
+  # # split data in sub time series without gaps
+  # missing_days <- unique(which(is.na(full_train), arr.ind = TRUE)[, 1])
+  # if(length(missing_days) != 0){
+  #
+  #   # if only one split is necessary
+  #   if(length(missing_days) == 1){
+  #     cut_points <- missing_days
+  #     data_list <- vector(mode = "list")
+  #     data_list[[1]] <- data[1:(cut_points[1] - 1), ]
+  #   } else {
+  #
+  #     # remove consecutive missing days
+  #     rm_ind <- integer()
+  #     if(length(missing_days) == 2){
+  #       if(missing_days[2] - missing_days[1] <= 20) rm_ind <- c(rm_ind, 2)
+  #     }
+  #
+  #
+  #     if(length(missing_days) > 2){
+  #       for(i in 2:(length(missing_days)-1)){
+  #         if(missing_days[i] - missing_days[i-1] <= 20 &
+  #            missing_days[i+1] - missing_days[i] <= 20) rm_ind <- c(rm_ind, i)
+  #       }
+  #     }
+  #
+  #     # for all cut points create list entry with data until that point
+  #     cut_points <- missing_days[-rm_ind]
+  #     data_list <- vector(mode = "list")
+  #     for(i in seq_along(cut_points)){
+  #       if(i == 1){
+  #         data_list[[i]] <- data[1:(cut_points[i] - 1), ]
+  #       } else {
+  #         data_list[[i]] <- data[(cut_points[i-1]+1):(cut_points[i]-1), ]
+  #       }
+  #     }
+  #     # for the last cut point also add the time from the last cutpoint to the end of the data
+  #     data_list[[length(data_list) + 1]] <- data[(cut_points[length(cut_points)] + 1):nrow(data), ]
+  #   }
+  # } # produces all complete snips of data
+  # data_list <- data_list[!(unlist(lapply(data_list, nrow)) < ts + 1)]
+  # data_list <- do.call(rbind, data_list)
+  # #saveRDS(y_test_arr, "test_dates_best_ybbs_LSTM.rds")
+  # y_dates <- readRDS("test_dates_best_ybbs_LSTM.rds")
+  # #saveRDS(y_test_arr, "test_wt_best_ybbs_LSTM.rds")
+  # y_values <- readRDS("test_wt_best_ybbs_LSTM.rds")
+  # y_test <- data.frame(date = y_dates, obs = y_values, stringsAsFactors = FALSE)
+  # head(y_test[-c(1:90), ])
+  # prediction
 
+#################
   if(plot == "dygraph"){
     pred_xts <- xts::xts(data.frame(test, prediction),
                          order.by = as.POSIXct(paste0(test$year, "-", test$mon, "-", test$day)))
@@ -190,10 +248,6 @@ wt_result_analysis <- function(catchment, model, folder_name, epochs, bs, plot){
     #ts_plot$series[ts_plot$series == "wt"] <- "observed"
     #ts_plot$series[ts_plot$series == "predictions"] <- model
     #names(ts_plot)[2] <- "legend"
-
-
-
-
      ts_plot3 <- as.data.frame(pred_xts[, c("GL", "Tmean")][years], stringsAsFactors = FALSE)
      ts_plot3$time <- as.POSIXct(row.names(ts_plot3))
      ts_plot3$GL <- as.numeric(ts_plot3$GL)
@@ -317,6 +371,20 @@ wt_result_analysis <- function(catchment, model, folder_name, epochs, bs, plot){
     min_q <- floor(min(error_df$Q)/10)*10
     error_df$Q_bins10_low <- cut(error_df$Q, seq(min_q, max_q, 10), dig.lab=10)
 
+
+    # # RR for PLotting --------------------------------------------------------------------
+    # # RR max value for cut
+    #   RR_max_bin <- ceiling(max(error_df$RR) * 5)/5
+    #   RR_min_bin <-  floor(min(error_df$RR) * 5)/5
+    # error_df$RR_bins <- cut(error_df$RR, breaks = seq(RR_min_bin, RR_max_bin, 5))
+    #
+    # # RR bins 5 mm range
+    #   agg_wt5_RR <- aggregate(wt ~ RR_bins, error_df, function(x) mean(x, na.rm = TRUE))
+    #   names(agg_wt5_RR)[2] <- "mean_wt5_RR"
+    #   error_df <- merge(error_df, agg_wt5_RR, by = "RR_bins", all.x = TRUE)
+    #
+
+
     # Air Temperature influence on prediction --------------------------------------------
     ggplot(error_df, aes(tmean_bins, error, fill = mean_Tmean)) +
       geom_hline(yintercept = 0) + geom_boxplot() + coord_flip() +
@@ -421,7 +489,16 @@ wt_result_analysis <- function(catchment, model, folder_name, epochs, bs, plot){
       labs(color = "prediction \nerror °C") + xlab("water temperature in °C") +
       ylab("daily mean runoff m³/s")
 
+    # RR influence on prediction
 
+    ggplot(error_df, aes(RR_bins, error, fill = mean_wt5_RR)) +
+      geom_hline(yintercept = 0) + geom_boxplot() + coord_flip() +
+      scale_fill_gradient2(low = "#0099FF", high = "#FF3300",
+                           midpoint = mean(error_df$wt),
+                           na.value = "black", limits = c(0, NA)) +
+      xlab("RR") + ylab("prediction error in °C (prediction - observation)") +
+      labs(fill = "daily mean \nwater temp. °C")
+    ggsave(paste0(model_folder, "wt_vs_error.png"))
 
   }
 

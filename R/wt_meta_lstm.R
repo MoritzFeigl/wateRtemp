@@ -209,11 +209,11 @@ lstm_metaf <- function(catchment,
   if(model_subset == ensemble_runs & model_subset > 1){
     message("All ensemble runs were used for the prediction.")
   }
-  if(model_subset < ensemble_runs & model_subset >= 1){
+  if(model_subset < ensemble_runs & model_subset > 1){
     if(model_subset > 10){
       message("The best 10% of ensemble runs were used for the prediction.")
     } else {
-      message("The best 10 of ensemble runs were used for the prediction.")
+      message("All ensemble runs were used for the prediction.")
     }
     # Delete all loss data frames and loss plots from the ensembles not used for prediction
     # all checkpoints
@@ -250,10 +250,6 @@ lstm_metaf <- function(catchment,
 
 
   # Model Scores -------------------------------------------------------------------------
-  # save predicted values
-  feather::write_feather(data.frame("predicted_values" = mean_pred_results_test*train_sd + train_mean),
-                         paste0(catchment, "/LSTM/", model_name, "/",
-                                folder_name, "/predicted_values.feather"))
   # scores
   residuals_LSTM_val <- (mean_pred_results_val*train_sd + train_mean) - (y_val_arr*train_sd + train_mean)
   RMSE_LSTM_val <- round(sqrt(mean(residuals_LSTM_val^2)), 3)
@@ -359,4 +355,18 @@ lstm_metaf <- function(catchment,
     write.csv(model_scores, paste0(catchment, "/LSTM/model_scores.csv"), row.names = FALSE)
 
   }
+
+  # get predicted values in the same dim/format as the input data
+  test_prediction <- mean_pred_results_test*train_sd + train_mean
+  test_split <- test[test_long_ts]
+  test_split_no_ts <- lapply(test_split, function(x) x[-c(1:ts), ])
+  test_split_no_ts <- do.call(rbind, test_split_no_ts)
+  test_prediction_time <- data.frame(date = as.POSIXct(test_split_no_ts$date), prediction = test_prediction, stringsAsFactors = FALSE)
+  test_prediction_full <- merge(LSTM_test, test_prediction_time, by = "date", all.x = TRUE)
+  test_prediction_full <- test_prediction_full$prediction
+
+  # save predicted values
+  feather::write_feather(data.frame("predicted_values" = test_prediction_full),
+                         paste0(catchment, "/LSTM/", model_name, "/",
+                                folder_name, "/predicted_values.feather"))
 }

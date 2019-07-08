@@ -64,12 +64,12 @@ wt_lstm <- function(catchment,
         data_prefix <- ""
       }
 
-      train <- read_feather(paste0(catchment, "/train_", data_prefix, "data.feather"))
-      test <- read_feather(paste0(catchment, "/test_", data_prefix, "data.feather"))
-      part_training <- nrow(train)/4 * 3
+      train_ini <- read_feather(paste0(catchment, "/train_", data_prefix, "data.feather"))
+      test_ini <- read_feather(paste0(catchment, "/test_", data_prefix, "data.feather"))
+      part_training <- nrow(train_ini)/4 * 3
       train_length <- floor(part_training)
-      val <- train[(train_length + 1):nrow(train), ]
-      train <- train[1:train_length, ]
+      val_ini <- train_ini[(train_length + 1):nrow(train_ini), ]
+      train_ini <- train_ini[1:train_length, ]
 
       if(data_inputs == "simple"){
         relevant_data <- c("date", "Q", "Tmean", "wt")
@@ -88,9 +88,9 @@ wt_lstm <- function(catchment,
         n_features <- 4
       }
 
-      LSTM_train <- train[, relevant_data]
-      LSTM_val <- val[, relevant_data]
-      LSTM_test <- test[, relevant_data]
+      LSTM_train <- train_ini[, relevant_data]
+      LSTM_val <- val_ini[, relevant_data]
+      LSTM_test <- test_ini[, relevant_data]
       # Scaling
       train_mean <- mean(LSTM_train$wt)
       train_sd <- sd(LSTM_train$wt)
