@@ -147,8 +147,8 @@ lstm_metaf <- function(catchment,
     model_checkpoint <- callback_model_checkpoint(
       filepath = paste0(catchment, "/LSTM/", model_name, "/", folder_name,
                         "/checkpoints/model_checkpoint_run", run,
-                        "_weights.{epoch:02d}.hdf5"),
-      save_best_only = TRUE, save_weights_only = TRUE, period = epochs)
+                        "_weights.hdf5"),
+      save_best_only = TRUE, period = 1)#epochs)
     history <- model %>% fit(
       x_train_arr, y_train_arr,
       epochs = epochs,
@@ -185,7 +185,7 @@ lstm_metaf <- function(catchment,
 
   }
 
-  # choose best ensemble runs -> delete others, take redictions only from the best
+  # choose best ensemble runs -> delete others, take predictions only from the best
 
   # Calculating RMSE for all members of the ensemble
   model_rmse <- function(model_pred, y){

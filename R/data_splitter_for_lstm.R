@@ -24,6 +24,7 @@ data_splitter_for_lstm <- function(data){
       cut_points <- missing_days
       data_list <- vector(mode = "list")
       data_list[[1]] <- data[1:(cut_points[1] - 1), ]
+      data_list[[length(data_list) + 1]] <- data[(cut_points[length(cut_points)] + 1):nrow(data), ]
     } else {
 
       # remove consecutive missing days
