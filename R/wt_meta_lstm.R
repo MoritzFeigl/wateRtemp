@@ -21,7 +21,7 @@ lstm_metaf <- function(catchment,
                        x_train, y_train, x_val, y_val, x_test, y_test,
                        data_inputs, train_mean, train_sd,
                        ts, u, bs, epochs, LSTM_type, n_predictions, n_features,
-                       user_name, ensemble_runs, test
+                       user_name, ensemble_runs, test, LSTM_test
 ){
 
   # Parameters ---------------------------------------------------------------------------
