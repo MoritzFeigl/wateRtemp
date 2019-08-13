@@ -42,7 +42,11 @@ data_splitter_for_lstm <- function(data){
       }
 
       # for all cut points create list entry with data until that point
-      cut_points <- missing_days[-rm_ind]
+      if(length(rm_ind) != 0) {
+        cut_points <- missing_days[-rm_ind]
+      } else {
+        cut_points <- missing_days
+      }
       data_list <- vector(mode = "list")
       for(i in seq_along(cut_points)){
         if(i == 1){
