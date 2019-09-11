@@ -4,7 +4,8 @@
 \alias{wt_result_analysis}
 \title{wt_result_analysis}
 \usage{
-wt_result_analysis(catchment, model, folder_name, epochs, bs, plot)
+wt_result_analysis(catchment, model, folder_name, epochs, bs,
+  years = "2015")
 }
 \arguments{
 \item{plot}{}

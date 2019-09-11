@@ -48,13 +48,12 @@ wt_lstm <- function(catchment,
 
   for(catchment in catchment){
     cat("*** Starting computation for catchment", catchment, "***\n")
-      if(sum(list.files() %in% catchment) != 1){
-        message(paste0("ERROR: There is no folder named ", catchment, " in your current working directory."))
-        next
-      }
+    if(sum(list.files() %in% catchment) != 1){
+      message(paste0("ERROR: There is no folder named ", catchment, " in your current working directory."))
+      next
+    }
     for(data_inputs in data_inputs_meta){
       LSTM_type <- paste0("lstm", lstm_layers)
-
       # check if there is seperate radiation data
       rad_data <- length(list.files(catchment, pattern = "radiation_")) > 0
       # in case of radiation or all data_input, load radiation data
@@ -102,9 +101,9 @@ wt_lstm <- function(catchment,
 
 
       # check if there are time gaps in the data -> split
-      train <- data_splitter_for_lstm(LSTM_train)
-      val <- data_splitter_for_lstm(LSTM_val)
-      test <- data_splitter_for_lstm(LSTM_test)
+      train <- data_splitter_for_lstm(LSTM_train, data_name = "train")
+      val <- data_splitter_for_lstm(LSTM_val, data_name = "validation")
+      test <- data_splitter_for_lstm(LSTM_test, data_name = "test")
 
       x_train <- lapply(train, function(x) as.matrix(x[, relevant_data[-c(1, 4)]]))
       y_train <- lapply(train, function(x) as.matrix(x[, c("wt")]))
