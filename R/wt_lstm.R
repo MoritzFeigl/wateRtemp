@@ -101,9 +101,9 @@ wt_lstm <- function(catchment,
 
 
       # check if there are time gaps in the data -> split
-      train <- data_splitter_for_lstm(LSTM_train, data_name = "train")
-      val <- data_splitter_for_lstm(LSTM_val, data_name = "validation")
-      test <- data_splitter_for_lstm(LSTM_test, data_name = "test")
+      train <- data_splitter_for_lstm(LSTM_train, data_name = "train", catchment = catchment)
+      val <- data_splitter_for_lstm(LSTM_val, data_name = "validation", catchment = catchment)
+      test <- data_splitter_for_lstm(LSTM_test, data_name = "test", catchment = catchment)
 
       x_train <- lapply(train, function(x) as.matrix(x[, relevant_data[-c(1, 4)]]))
       y_train <- lapply(train, function(x) as.matrix(x[, c("wt")]))

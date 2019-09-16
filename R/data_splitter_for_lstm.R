@@ -5,7 +5,7 @@
 #' @return
 #'
 #' @examples
-data_splitter_for_lstm <- function(data, data_name){
+data_splitter_for_lstm <- function(data, data_name, catchment){
   # create full time series with no gaps
   full_ts <- data.frame(
     date = as.character(format.POSIXct(

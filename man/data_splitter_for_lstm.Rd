@@ -4,7 +4,7 @@
 \alias{data_splitter_for_lstm}
 \title{data_splitter_for_lstm}
 \usage{
-data_splitter_for_lstm(data)
+data_splitter_for_lstm(data, data_name)
 }
 \arguments{
 \item{data}{Time series data as a data frame with the first column containing a POSIXct data and is named "date".}

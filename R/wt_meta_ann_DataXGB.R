@@ -48,10 +48,14 @@ ann_metaf_DataXGB <- function(catchment, data_inputs,
     # Defining model and layers
     model <- keras_model_sequential()
     model %>%
-      layer_dense(units = 300, activation = 'selu', input_shape = c(n_features)) %>%
+      layer_dense(units = 1000, activation = 'selu', input_shape = c(n_features)) %>%
       layer_dropout(rate = 0.3) %>%
-      layer_dense(units = 300, activation = 'relu') %>%
+      layer_dense(units = 1000, activation = 'relu') %>%
       layer_dropout(rate = 0.1) %>%
+      layer_dense(units = 800, activation = 'relu') %>%
+      layer_dense(units = 600, activation = 'relu') %>%
+      layer_dense(units = 450, activation = 'relu') %>%
+      layer_dense(units = 300, activation = 'relu') %>%
       layer_dense(units = 150, activation = 'relu') %>%
       layer_dense(units = 50) %>%
       layer_dense(units = 1) %>%
