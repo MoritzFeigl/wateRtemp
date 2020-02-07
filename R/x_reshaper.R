@@ -11,7 +11,7 @@
 x_reshaper <- function(x, n_timesteps, n_predictions){
   # train data: 3D array with dimesions(sample, n_timesteps, features)
   #             therefore the n_timesteps of observations before our prediction point
-  # val data: 2D array with dimensions (sample, 1) -> 1 because we only predict 1 day
+  # val data: 2D array with dimensions (sample, n_predictions)
   if(is.null(nrow(x))) x <- as.matrix(x, ncol = 1)
   x_list <- vector(mode = "list", length = (nrow(x) - n_timesteps - n_predictions + 1))
   for(i in 1:(nrow(x) - n_timesteps - n_predictions + 1)){
