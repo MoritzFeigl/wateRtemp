@@ -1,0 +1,77 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# wateRtemp
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+A machine learning toolbox for river water temperature prediction.
+
+## Installation
+
+You can install the released version of wateRtemp from [GitHub](https://github.com/) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("MoritzFeigl/wateRtemp")
+```
+## Example
+
+This is a basic example of how to preprocess data and how to apply different machine learning algorithms using wateRtemp 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(wateRtemp)
+```
+
+At first it is necessary to create a folder with the name of the catchment or study area in which the preprocessed data and results will be stored. For that we create here a dummy folder called "Catchment".
+```{r example}
+dir.create("Catchment")
+```
+
+For using watRtemp preprocessing and modelling functions, the necessary data should be available as a data frame. An example data frame is included in wateRtemp and can be called by `data("wt_data")`.
+```{r}
+# Provide the catchment data as a data frame
+data("wt_data")
+# it should look like this:
+str(wt_data)
+```
+
+After loading the necessecery data, we can use the watRtemp preprocessing function to apply feature engineering and data splits. The preprocessed data will be saved in the Catchment folder automatically. 
+```{r}
+# Preprocess the data
+wt_preprocess("Catchment", data = wt_data,
+              year_range = c(2007, 2015))
+```
+
+Now we are ready to apply our machine learning models. For this example we run a stepwise linear model using the function `wt_lm` with the specification `type = "step"`. 
+```{r model_run, warning=FALSE}
+wt_lm(catchment = "Catchment",
+      data_inputs = "simple", 
+      type = "step", 
+      user_name = "Example")
+```
+Similar to linear models, we can easily apply other type of machine learning models on the preprocessed data (including hyperparemeter optimization):
+
+* `wt_randomforest` for random forests,
+
+* `wt_xgboost` for XGBoost (Extreme Gradient Boosting),
+
+* `wt_ann` for feed forward neural networks,
+
+* `wt_rnn` for recurrent neural networks: LSTMs and GRUs
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+unlink("Catchment", recursive = T)
+```

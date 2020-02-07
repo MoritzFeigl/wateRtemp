@@ -191,9 +191,9 @@ wt_lm <- function(catchment, data_inputs = NULL, type = NULL, user_name = "R2D2"
           step_lm_model <- lm(step_formular, train)
           step_lm_model <- MASS::stepAIC(step_lm_model, direction = "both",
                                          trace = FALSE)
-          model_diagnostic_val <- rmse_nse(lm_model, val)
+          model_diagnostic_val <- rmse_nse(step_lm_model, val)
           names(model_diagnostic_val) <- paste0(names(model_diagnostic_val), "_val")
-          model_diagnostic_test <- rmse_nse(lm_model, test)
+          model_diagnostic_test <- rmse_nse(step_lm_model, test)
           run_time <-  paste0(
             round((as.numeric(Sys.time()) - as.numeric(start_time))/60, 2),
             " minutes")
@@ -211,6 +211,9 @@ wt_lm <- function(catchment, data_inputs = NULL, type = NULL, user_name = "R2D2"
                                     model_diagnostic_test,
                                     stringsAsFactors = FALSE)
           saveRDS(step_lm_model, paste0(catchment, "/LM/", model_name, "/step_lm_model.rds"))
+
+          cat("\nModel quality criteria: \nRMSE: ", model_diagnostic$RMSE, "\n", "NSE: ", model_diagnostic$NSE, sep = "")
+          cat("\nResulting model and model diagnostics are saved under", paste0("/",catchment, "/LM/\n"))
         }
 
         # save model scores

@@ -5,7 +5,7 @@ Version: 0.1.0
 Author: Moritz Feigl, Katharina Lebiedzinski
 Maintainer: Moritz Feigl <moritz.feigl@boku.ac.at>
 Description: Water temperature modelling with regression models, random forest, XGBoost, LSTM.
-License: GPL-2 | file LICENSE
+License: Apache License (>= 2.0)
 Encoding: UTF-8
 LazyData: true
 Depends: caret, ggplot2, keras, tensorflow, parallel, rBayesianOptimization, feather, ranger, xgboost, abind, dplyr

@@ -16,6 +16,10 @@ wt_preprocess <- function(catchment, data,
     stop(paste0("ERROR: Cannot find catchment folder(s) in your current working directory."))
   }
 
+  # workaround #TO DO: why is it necessary
+  data$mon <- as.factor(data$mon)
+  data$day <- as.factor(data$day)
+
   # remove dates outside the relevant range
   data <- data[data$year >= year_range[1] & data$year <= year_range[2], ]
   # Q and T differences
