@@ -4,9 +4,16 @@
 \alias{wt_xgboost_simple}
 \title{wt_xgboost_simple}
 \usage{
-wt_xgboost_simple(catchment, data_inputs = NULL, model_or_optim, cv_mode,
-  parameter_list, plot_ts = FALSE, save_importance_plot = FALSE,
-  user_name = "R2D2")
+wt_xgboost_simple(
+  catchment,
+  data_inputs = NULL,
+  model_or_optim,
+  cv_mode,
+  parameter_list,
+  plot_ts = FALSE,
+  save_importance_plot = FALSE,
+  user_name = "R2D2"
+)
 }
 \arguments{
 \item{catchment}{Name of the folder with the data as a string.}

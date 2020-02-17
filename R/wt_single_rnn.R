@@ -28,7 +28,8 @@ wt_single_rnn <- function(catchment,
       "\n    layers =", layers,
       "\n    units =", units,
       "\n    timesteps =", timesteps,
-      "\n    dropout =", dropout, "\n\n")
+      "\n    dropout =", dropout,
+      "\n    batch_size =", batch_size, "\n\n")
   # time and folders ---------------------------------------------------------------------
   start_time <- Sys.time()
   model_name <- paste0(rnn_type, "_", data_inputs)
@@ -114,13 +115,16 @@ wt_single_rnn <- function(catchment,
   if(!dir.exists(paste0(catchment, "/RNN/", model_name, "/", folder_name))){
     dir.create(paste0(catchment, "/RNN/", model_name, "/", folder_name))
   }
-  if(!dir.exists(paste0(catchment, "/RNN/", model_name, "/", folder_name, "/checkpoints"))){
-    dir.create(paste0(catchment, "/RNN/", model_name, "/", folder_name, "/checkpoints"))
+  if(!dir.exists(paste0(catchment, "/RNN/", model_name, "/", folder_name,
+                        "/checkpoints"))){
+    dir.create(paste0(catchment, "/RNN/", model_name, "/", folder_name,
+                      "/checkpoints"))
   }
-  if(!dir.exists(paste0(catchment, "/RNN/", model_name, "/", folder_name, "/training_metrics"))){
-    dir.create(paste0(catchment, "/RNN/", model_name, "/", folder_name, "/training_metrics"))
+  if(!dir.exists(paste0(catchment, "/RNN/", model_name, "/", folder_name,
+                        "/training_metrics"))){
+    dir.create(paste0(catchment, "/RNN/", model_name, "/", folder_name,
+                      "/training_metrics"))
   }
-
   # Ensemble runs
   for(run in 1:ensemble_runs){
     model <- create_model()
@@ -134,7 +138,8 @@ wt_single_rnn <- function(catchment,
       epochs = epochs,
       batch_size = batch_size,
       callbacks = list(
-        callback_early_stopping(patience = early_stopping_patience, restore_best_weights = TRUE),
+        callback_early_stopping(patience = early_stopping_patience,
+                                restore_best_weights = TRUE),
         model_checkpoint),
       validation_data = list(x_val_arr, y_val_arr))
     if(run == 1){
@@ -144,15 +149,18 @@ wt_single_rnn <- function(catchment,
       predict_rnn_val[[run]] <- predict(model, x_val_arr)
       predict_rnn_test[[run]] <- predict(model, x_test_arr)
     }
-
+    # Plot training losses
     png(paste0(catchment, "/RNN/", model_name, "/", folder_name,
                "/training_metrics/plot_ensemble_member_", run, ".png"),
         width = 800, heigh = 600)
-    plot(history$metrics$loss, xlab = "epochs", main = "Model loss", ylim = c(0, max(history$metrics$loss)),
+    plot(history$metrics$loss, xlab = "epochs", main = "Model loss",
+         ylim = c(0, max(history$metrics$loss, na.rm = TRUE)),
          ylab = "model loss", type="l", col="blue")
     lines(history$metrics$val_loss, col = "darkgreen")
-    legend("topright", c("training","validation"), col=c("blue", "darkgreen"), lty=c(1,1), bty = "n")
+    legend("topright", c("training","validation"),
+           col = c("blue", "darkgreen"), lty = c(1,1), bty = "n")
     dev.off()
+    # save training metrics
     feather::write_feather(
       data.frame(epoch = 1:length(history$metrics$loss),
                  train_loss = history$metrics$loss,
@@ -161,8 +169,6 @@ wt_single_rnn <- function(catchment,
              "/training_metrics/loss_ensemble_member_", run, ".feather")
     )
   }
-
-
   # define model_subset depending on the number of ensembles
   if(ensemble_runs < 100){
     model_subset <- ifelse(ensemble_runs <= 10, ensemble_runs, 10)
@@ -197,9 +203,12 @@ wt_single_rnn <- function(catchment,
     cp_files <- list.files(paste0(catchment, "/RNN/", model_name, "/",
                                   folder_name, "/checkpoints"))
     cp_numbers <- unlist(lapply(strsplit(cp_files, "_"),
-                                function(x) as.integer(sub("run", "", x[grep("run", x)]))))
-    txt <- capture.output(file.remove(paste0(catchment, "/RNN/", model_name, "/", folder_name,
-                                             "/checkpoints/", cp_files[cp_numbers %in% model_to_delete])))
+                                function(x) as.integer(
+                                  sub("run", "", x[grep("run", x)])
+                                )))
+    txt <- capture.output(file.remove(
+      paste0(catchment, "/RNN/", model_name, "/", folder_name,
+             "/checkpoints/", cp_files[cp_numbers %in% model_to_delete])))
     txt <- capture.output(
       file.remove(
         paste0(catchment, "/RNN/", model_name, "/", folder_name,
@@ -266,7 +275,7 @@ wt_single_rnn <- function(catchment,
                          observation = y_val_arr[, j])
     }
   }
-# run time
+  # run time
   run_time <- paste0(round((as.numeric(Sys.time()) - as.numeric(start_time))/60, 2),
                      " minutes")
   if("model_scores.csv" %in% list.files(paste0(catchment, "/RNN"))){
@@ -332,6 +341,6 @@ wt_single_rnn <- function(catchment,
   feather::write_feather(test_prediction_full,
                          paste0(catchment, "/RNN/", model_name, "/",
                                 folder_name, "/test_prediction.feather"))
-cat("Finished run with validation rmse =", RMSE_rnn_val, "\n\n")
+  cat("Finished run with validation rmse =", RMSE_rnn_val, "\n\n")
   if(return_flag) return(mean(RMSE_rnn_val))
 }

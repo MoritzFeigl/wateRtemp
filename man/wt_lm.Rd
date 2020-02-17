@@ -11,6 +11,9 @@ wt_lm(catchment, data_inputs = NULL, type = NULL, user_name = "R2D2")
 
 \item{type}{}
 }
+\value{
+
+}
 \description{
 wt_lm
 }

@@ -10,4 +10,4 @@ Encoding: UTF-8
 LazyData: true
 Depends: caret, ggplot2, keras, tensorflow, parallel, rBayesianOptimization, feather, ranger, xgboost, abind, dplyr
 Imports: 
-RoxygenNote: 6.1.1
+RoxygenNote: 7.0.2

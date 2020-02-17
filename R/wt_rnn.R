@@ -1,4 +1,3 @@
-
 #' wt_rnn
 #'
 #' @param catchment Name of the folder with the data given as a string.

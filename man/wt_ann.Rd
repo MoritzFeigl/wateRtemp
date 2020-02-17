@@ -4,11 +4,21 @@
 \alias{wt_ann}
 \title{wt_ann}
 \usage{
-wt_ann(catchment, data_inputs = NULL, model_or_optim, bs = c(10, 50,
-  100), epochs = c(100), ensemble_runs = 100, user_name = "R2D2")
+wt_ann(
+  catchment,
+  data_inputs = NULL,
+  model_or_optim,
+  bs = c(10, 50, 100),
+  epochs = c(100),
+  ensemble_runs = 100,
+  user_name = "R2D2"
+)
 }
 \arguments{
 \item{ensemble_runs}{}
+}
+\value{
+
 }
 \description{
 wt_ann

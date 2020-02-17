@@ -1,17 +1,42 @@
+#' wt_rnn_optimizer
+#'
+#' @param catchment
+#' @param data_inputs
+#' @param rnn_type
+#' @param n_iter
+#' @param n_random_initial_points
+#' @param n_predictions
+#' @param epochs
+#' @param early_stopping_patience
+#' @param ensemble_runs
+#' @param bounds_layers
+#' @param bounds_timesteps
+#' @param bounds_units
+#' @param bounds_dropout
+#' @param bounds_batch_size
+#' @param top_n_models
+#' @param initial_grid_from_model_scores
+#' @param user_name
+#'
+#' @return
+#' @export
+#'
+#' @examples
 wt_rnn_optimizer <- function(catchment,
                              data_inputs = NULL,
                              rnn_type = NULL,
-                             n_iter = 50,
+                             n_iter = 20,
+                             n_random_initial_points = 20,
                              n_predictions = 1,
                              epochs = 100,
                              early_stopping_patience = 5,
-                             ensemble_runs = 5,
+                             ensemble_runs = 3,
                              bounds_layers = c(1, 4),
-                             bounds_timesteps = c(10, 365),
-                             bounds_units = c(5, 365),
+                             bounds_timesteps = c(10, 150),
+                             bounds_units = c(5, 150),
                              bounds_dropout = c(0, 0.5),
                              bounds_batch_size = c(5, 150),
-                             top_n_models = 5,
+                             top_n_models = 3,
                              initial_grid_from_model_scores = FALSE,
                              user_name = "R2D2"){
 
@@ -32,18 +57,49 @@ wt_rnn_optimizer <- function(catchment,
                       user_name = user_name)
     return(list("Score" = results*-1, "Pred" = 0))
   }
+  # initial value for flag -> if additional initial_grid points should be calculated
+  ini_grid_cal_flag <- FALSE
 
   if(initial_grid_from_model_scores){
-# get initial grid for optimization from the previous calculated model_scores
-    cat("\n*** Using model_scores as initial grid for the Bayesian Optimization ***\n\n")
-    model_scores <- read.csv(paste0(catchment, "/RNN/model_scores.csv"), stringsAsFactors = FALSE)
-    initial_grid <- model_scores[model_scores$rnn_type == rnn_type, c("layers", "timesteps", "units", "dropout", "batch_size", "RMSE_val")]
-  } else {
-    grid <- expand.grid("layers" = sample(seq(bounds_layers[1], bounds_layers[2]), 2),
-                        "timesteps" = sample(seq(bounds_timesteps[1], bounds_timesteps[2]), 2),
-                        "units" = sample(seq(bounds_units[1], bounds_units[2]), 2),
-                        "dropout" = sample(seq(bounds_dropout[1], bounds_dropout[2], by = 0.1), 2),
-                        "batch_size" = sample(seq(bounds_batch_size[1], bounds_batch_size[2]), 2))
+    # get initial grid for optimization from the previous calculated model_scores
+    cat("\n*** Using existing model_scores as initial grid for the Bayesian Optimization ***\n\n")
+    model_scores <- read.csv(paste0(catchment, "/RNN/model_scores.csv"),
+                             stringsAsFactors = FALSE)
+    initial_grid <- model_scores[model_scores$rnn_type == rnn_type &
+                                   model_scores$data_inputs == data_inputs,
+                                 c("layers", "timesteps", "units", "dropout",
+                                   "batch_size", "RMSE_val")]
+    if(nrow(initial_grid) < n_random_initial_points) ini_grid_cal_flag <- TRUE
+  }
+
+  if(!initial_grid_from_model_scores | ini_grid_cal_flag) {
+
+    n_random <- ifelse(ini_grid_cal_flag,
+                       n_random_initial_points - nrow(initial_grid),
+                       n_random_initial_points)
+
+    grid <- data.frame(
+      "layers" = replicate(n = n_random,
+                           sample(
+                             x = seq(bounds_layers[1], bounds_layers[2]),
+                             size = 1)),
+      "timesteps" = replicate(n = n_random,
+                              sample(
+                                x = seq(bounds_timesteps[1], bounds_timesteps[2]),
+                                size = 1)),
+      "units" = replicate(n = n_random,
+                          sample(
+                            x = seq(bounds_units[1], bounds_units[2]), size = 1)),
+      "dropout" = replicate(n = n_random,
+                            sample(
+                              x = seq(bounds_dropout[1], bounds_dropout[2], by = 0.1),
+                              size = 1)),
+      "batch_size" = replicate(n = n_random,
+                               sample(
+                                 x = seq(bounds_batch_size[1], bounds_batch_size[2]),
+                                 size = 1))
+    )
+
 
     cat("\n*** Computing the initial grid for the Bayesian Optimization ***
       with Hyperparameter sampled from the given bounds\n\n")
@@ -65,10 +121,24 @@ wt_rnn_optimizer <- function(catchment,
                              ensemble_runs = 1,
                              user_name = user_name)
     )
-    initial_grid <- cbind(grid, grid_results)
+    # Define initial_grid for bayesian hyperaparameter optimization
+    if(ini_grid_cal_flag){
+      additional_grid_points <- cbind(grid, grid_results)
+      names(additional_grid_points) <- names(initial_grid)
+      initial_grid <- rbind(initial_grid, additional_grid_points)
+    } else {
+      initial_grid <- cbind(grid, grid_results)
+    }
   }
+
   cat("\n*** Starting Bayesian Hyperparameter Optimization ***\n")
-    colnames(initial_grid)[6] <- "Value"
+  if(nrow(initial_grid) > n_random_initial_points){
+    n_iter <- n_iter - (nrow(initial_grid) - n_random_initial_points)
+    cat(nrow(initial_grid) - n_random_initial_points,
+        "iterations were already computed\n")
+  }
+
+  colnames(initial_grid)[6] <- "Value"
   initial_grid$Value <- initial_grid$Value * -1
   Bopt_rnn <- rBayesianOptimization::BayesianOptimization(Bopt_rnn_model,
                                                           bounds = list(layers = as.integer(bounds_layers),

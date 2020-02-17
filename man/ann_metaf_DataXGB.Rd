@@ -4,9 +4,25 @@
 \alias{ann_metaf_DataXGB}
 \title{ann_metaf}
 \usage{
-ann_metaf_DataXGB(catchment, data_inputs, bs, epochs, ensemble_runs,
-  train_mean, train_sd, x_train, y_train, x_val, y_val, x_test, y_test,
-  n_features, model_name, user_name)
+ann_metaf_DataXGB(
+  catchment,
+  data_inputs,
+  bs,
+  epochs,
+  ensemble_runs,
+  train_mean,
+  train_sd,
+  x_train,
+  y_train,
+  x_val,
+  y_val,
+  x_test,
+  y_test,
+  n_features,
+  model_name,
+  user_name,
+  ann_train_wt_unscaled
+)
 }
 \arguments{
 \item{ensemble_runs}{}

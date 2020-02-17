@@ -4,9 +4,16 @@
 \alias{wt_randomforest}
 \title{wt_RandomForest}
 \usage{
-wt_randomforest(catchment, data_inputs = NULL, model_or_optim, cv_mode,
-  no_cores = detectCores() - 1, plot_ts = FALSE,
-  save_importance_plot = FALSE, user_name = "R2D2")
+wt_randomforest(
+  catchment,
+  data_inputs = NULL,
+  model_or_optim,
+  cv_mode,
+  no_cores = detectCores() - 1,
+  plot_ts = FALSE,
+  save_importance_plot = FALSE,
+  user_name = "R2D2"
+)
 }
 \arguments{
 \item{catchment}{Name of the folder with the data given as a string.}
