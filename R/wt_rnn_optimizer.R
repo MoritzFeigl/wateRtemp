@@ -40,26 +40,8 @@ wt_rnn_optimizer <- function(catchment,
                              initial_grid_from_model_scores = FALSE,
                              user_name = "R2D2"){
 
-  # optimize structure with optimization algorithm
-  Bopt_rnn_model <- function(layers, timesteps, units, dropout, batch_size){
-    results <- wt_rnn(catchment = catchment,
-                      data_inputs = data_inputs,
-                      rnn_type = rnn_type,
-                      layers = layers,
-                      n_predictions = n_predictions,
-                      timesteps = timesteps,
-                      units = units,
-                      dropout = dropout,
-                      batch_size = batch_size,
-                      epochs = epochs,
-                      early_stopping_patience = early_stopping_patience,
-                      ensemble_runs = 1,
-                      user_name = user_name)
-    return(list("Score" = results*-1, "Pred" = 0))
-  }
   # initial value for flag -> if additional initial_grid points should be calculated
   ini_grid_cal_flag <- FALSE
-
   if(initial_grid_from_model_scores){
     # get initial grid for optimization from the previous calculated model_scores
     cat("\n*** Using existing model_scores as initial grid for the Bayesian Optimization ***\n\n")
@@ -71,13 +53,11 @@ wt_rnn_optimizer <- function(catchment,
                                    "batch_size", "RMSE_val")]
     if(nrow(initial_grid) < n_random_initial_points) ini_grid_cal_flag <- TRUE
   }
-
+  # should a random grid be calculated first
   if(!initial_grid_from_model_scores | ini_grid_cal_flag) {
-
     n_random <- ifelse(ini_grid_cal_flag,
                        n_random_initial_points - nrow(initial_grid),
                        n_random_initial_points)
-
     grid <- data.frame(
       "layers" = replicate(n = n_random,
                            sample(
@@ -99,11 +79,8 @@ wt_rnn_optimizer <- function(catchment,
                                  x = seq(bounds_batch_size[1], bounds_batch_size[2]),
                                  size = 1))
     )
-
-
     cat("\n*** Computing the initial grid for the Bayesian Optimization ***
       with Hyperparameter sampled from the given bounds\n\n")
-
     # run initial grid models
     grid_results <- mapply(wt_rnn,
                            layers = grid$layers,
@@ -130,32 +107,42 @@ wt_rnn_optimizer <- function(catchment,
       initial_grid <- cbind(grid, grid_results)
     }
   }
-
+  # Bayesian Hyperparameter optimization
   cat("\n*** Starting Bayesian Hyperparameter Optimization ***\n")
   if(nrow(initial_grid) > n_random_initial_points){
     n_iter <- n_iter - (nrow(initial_grid) - n_random_initial_points)
     cat(nrow(initial_grid) - n_random_initial_points,
         "iterations were already computed\n")
   }
-
   colnames(initial_grid)[6] <- "Value"
-  initial_grid$Value <- initial_grid$Value * -1
-  Bopt_rnn <- rBayesianOptimization::BayesianOptimization(Bopt_rnn_model,
-                                                          bounds = list(layers = as.integer(bounds_layers),
-                                                                        timesteps = as.integer(bounds_timesteps),
-                                                                        units = as.integer(bounds_units),
-                                                                        dropout = bounds_dropout,
-                                                                        batch_size = as.integer(bounds_batch_size)),
-                                                          n_iter = n_iter,
-                                                          init_grid_dt = initial_grid,
-                                                          acq = "ucb", kappa = 2.576, eps = 0.0,
-                                                          verbose = TRUE)
+
+  if(n_iter > 0){
+    # if there are still iterations left -> compute
+    initial_grid$Value <- initial_grid$Value * -1
+    Bopt_rnn <- rBayesianOptimization::BayesianOptimization(Bopt_rnn_model,
+                                                            bounds = list(layers = as.integer(bounds_layers),
+                                                                          timesteps = as.integer(bounds_timesteps),
+                                                                          units = as.integer(bounds_units),
+                                                                          dropout = bounds_dropout,
+                                                                          batch_size = as.integer(bounds_batch_size)),
+                                                            n_iter = n_iter,
+                                                            init_grid_dt = initial_grid,
+                                                            acq = "ucb", kappa = 2.576, eps = 0.0,
+                                                            verbose = TRUE)
+    all_model_results <- Bopt_rnn$History
+  } else {
+    # if all iterations are done -> use initial grid
+    all_model_results <- initial_grid
+    all_model_results$Value <- all_model_results$Value * -1
+  }
+
+  # get top_n best models and run them with ensemble_runs
   cat("\n*** Run the",  top_n_models, " best performing model as ensembles ***")
-  # get 5 best models and run them with ensemble_runs
-  top_n_model_results <- Bopt_rnn$History %>%
+  top_n_model_results <- all_model_results %>%
     top_n(n = top_n_models, wt = Value) %>%
     mutate(dropout = round(dropout, 2)) %>%
     select(-Value)
+
   final_results <- mapply(wt_rnn,
                           layers = top_n_model_results$layers,
                           timesteps = top_n_model_results$timesteps,

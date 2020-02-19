@@ -29,7 +29,8 @@ wt_single_rnn <- function(catchment,
       "\n    units =", units,
       "\n    timesteps =", timesteps,
       "\n    dropout =", dropout,
-      "\n    batch_size =", batch_size, "\n\n")
+      "\n    batch_size =", batch_size,
+      "\n    ensemble_runs =", ensemble_runs, "\n\n")
   # time and folders ---------------------------------------------------------------------
   start_time <- Sys.time()
   model_name <- paste0(rnn_type, "_", data_inputs)
