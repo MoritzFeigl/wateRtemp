@@ -1,21 +1,3 @@
-# optimize structure with optimization algorithm
-Bopt_rnn_model <- function(layers, timesteps, units, dropout, batch_size){
-  results <- wt_rnn(catchment = catchment,
-                    data_inputs = data_inputs,
-                    rnn_type = rnn_type,
-                    layers = layers,
-                    n_predictions = n_predictions,
-                    timesteps = timesteps,
-                    units = units,
-                    dropout = dropout,
-                    batch_size = batch_size,
-                    epochs = epochs,
-                    early_stopping_patience = early_stopping_patience,
-                    ensemble_runs = 1,
-                    user_name = user_name)
-  return(list("Score" = results*-1, "Pred" = 0))
-}
-
 data_splitter_for_rnn <- function(data, data_name, catchment){
   # inputs: data: data frame with the first column containing a POSIXct data and is named "date".
   # create full time series with no gaps

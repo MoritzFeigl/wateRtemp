@@ -117,6 +117,23 @@ wt_rnn_optimizer <- function(catchment,
   colnames(initial_grid)[6] <- "Value"
 
   if(n_iter > 0){
+    # function to be optimized
+    Bopt_rnn_model <- function(layers, timesteps, units, dropout, batch_size) {
+      results <- wt_rnn(catchment = catchment,
+                        data_inputs = data_inputs,
+                        rnn_type = rnn_type,
+                        layers = layers,
+                        n_predictions = n_predictions,
+                        timesteps = timesteps,
+                        units = units,
+                        dropout = dropout,
+                        batch_size = batch_size,
+                        epochs = epochs,
+                        early_stopping_patience = early_stopping_patience,
+                        ensemble_runs = 1,
+                        user_name = user_name)
+      return(list("Score" = results*-1, "Pred" = 0))
+    }
     # if there are still iterations left -> compute
     initial_grid$Value <- initial_grid$Value * -1
     Bopt_rnn <- rBayesianOptimization::BayesianOptimization(Bopt_rnn_model,
@@ -163,11 +180,36 @@ wt_rnn_optimizer <- function(catchment,
   # get the best ensemble rsult
   ensemble_results <- cbind(top_n_model_results, final_results) %>%
     top_n(n = -1, wt = final_results)
+
+  # get test values from model scores
+  model_scores <- read.csv(paste0(catchment, "/RNN/model_scores.csv"),
+                           stringsAsFactors = FALSE)
+  # filter gets confused when a variable has the same name as a column
+  esp <- early_stopping_patience
+  er <- ensemble_runs
+  np <- n_predictions
+  un <- user_name
+  # filter ensemble result information from model_scores
+  performance <- model_scores %>% filter(layers == ensemble_results$layers &
+                                           timesteps == ensemble_results$timesteps &
+                                           units == ensemble_results$units &
+                                           dropout == ensemble_results$dropout &
+                                           batch_size == ensemble_results$batch_size &
+                                           ensemble_runs == er &
+                                           n_predictions == np &
+                                           early_stopping_patience == esp &
+                                           max_epochs == epochs &
+                                           user_name == un) %>%
+    select(RMSE_val, NSE_val, RMSE_test, NSE_test, start_time)
+  if(nrow(performance) > 1) performance <- sapply(performance, mean) %>% t() %>%  as.data.frame()
   # Save optimization results in RNN folder
-  new_opt_results <- data.frame(date = as.character(Sys.time()),
+  new_opt_results <- data.frame(date = performance$start_time,
                                 data_inputs = data_inputs,
                                 rnn_type = rnn_type,
-                                optimized_val_rmse = ensemble_results$final_results,
+                                RMSE_val = performance$RMSE_val,
+                                NSE_val = performance$NSE_val,
+                                RMSE_test = performance$RMSE_test,
+                                NSE_test = performance$NSE_test,
                                 layers_opt = ensemble_results$layers,
                                 timesteps_opt = ensemble_results$timesteps,
                                 units_opt = ensemble_results$units,
@@ -184,7 +226,8 @@ wt_rnn_optimizer <- function(catchment,
                                 bounds_dropout = paste(bounds_dropout, collapse = "-"),
                                 bounds_batch_size = paste(bounds_batch_size, collapse = "-"),
                                 top_n_models = top_n_models,
-                                user_name = user_name
+                                user_name = user_name,
+                                stringsAsFactors = FALSE
   )
   if("optimization_results.csv" %in% list.files(paste0(catchment, "/RNN"))){
     opt_results <- read.csv(paste0(catchment, "/RNN/optimization_results.csv"))
