@@ -20,7 +20,7 @@ wt_rnn_optimizer(
   bounds_dropout = c(0, 0.5),
   bounds_batch_size = c(5, 150),
   top_n_models = 3,
-  initial_grid_from_model_scores = FALSE,
+  initial_grid_from_model_scores = TRUE,
   user_name = "R2D2"
 )
 }

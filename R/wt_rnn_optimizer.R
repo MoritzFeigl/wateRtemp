@@ -37,11 +37,17 @@ wt_rnn_optimizer <- function(catchment,
                              bounds_dropout = c(0, 0.5),
                              bounds_batch_size = c(5, 150),
                              top_n_models = 3,
-                             initial_grid_from_model_scores = FALSE,
+                             initial_grid_from_model_scores = TRUE,
                              user_name = "R2D2"){
 
   # initial value for flag -> if additional initial_grid points should be calculated
   ini_grid_cal_flag <- FALSE
+  # if there are no model score available -> set initial_grid_from_model_scores = FALSE
+  if(initial_grid_from_model_scores){
+    if(!("model_scores.csv" %in% list.files(paste0(catchment, "/RNN")))) {
+      initial_grid_from_model_scores <- FALSE
+    }
+  }
   if(initial_grid_from_model_scores){
     # get initial grid for optimization from the previous calculated model_scores
     cat("\n*** Using existing model_scores as initial grid for the Bayesian Optimization ***\n\n")
@@ -52,6 +58,7 @@ wt_rnn_optimizer <- function(catchment,
                                  c("layers", "timesteps", "units", "dropout",
                                    "batch_size", "RMSE_val")]
     if(nrow(initial_grid) < n_random_initial_points) ini_grid_cal_flag <- TRUE
+
   }
   # should a random grid be calculated first
   if(!initial_grid_from_model_scores | ini_grid_cal_flag) {
