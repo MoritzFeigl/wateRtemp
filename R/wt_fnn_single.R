@@ -12,7 +12,7 @@ wt_fnn_single <- function(catchment, x_train, x_val, x_test, y_train, y_val, y_t
   start_time <- Sys.time()
   model_name <- paste0("FNN_", data_inputs)
   folder_name <- paste0(batch_size, "batchsize_", units, "units_",
-                        layers, "layers_", round(dropout, 2), "dropout_")
+                        layers, "layers_", round(dropout, 2), "dropout")
 
 
   # define model
@@ -23,26 +23,21 @@ wt_fnn_single <- function(catchment, x_train, x_val, x_test, y_train, y_val, y_t
       # first time step
       if(lay == 1) {
         if(dropout_layers){
-          dropout1 <- layer_alpha_dropout(rate = dropout)
           output <- input %>%
-            dropout1(training = TRUE) %>%
-            #layer_alpha_dropout(rate = dropout, trainable = TRUE) %>%
+            layer_alpha_dropout(rate = dropout) %>%
             layer_dense(units = units,
                         activation = 'selu',
                         kernel_initializer = "lecun_normal")
         } else {
           output <- input %>%
             layer_dense(units = units,
-                        activation = 'selu',,
+                        activation = 'selu',
                         kernel_initializer = "lecun_normal")
         }
       }
       # all other time steps
       if(dropout_layers){
-        assign(paste0("dropout", lay), layer_alpha_dropout(rate = dropout))
-
-        output <- output %>% get(paste0("dropout", lay))(training = TRUE)
-        #output <- output %>% layer_alpha_dropout(rate = dropout, trainable = TRUE)
+        output <- output %>% layer_alpha_dropout(rate = dropout)
       }
       # add dense layers
       output <- output %>%
@@ -150,35 +145,37 @@ wt_fnn_single <- function(catchment, x_train, x_val, x_test, y_train, y_val, y_t
 
     # RMSE for all model runs, mean timestep RMSE for n_predictions > 1
     all_rmse_val <- sapply(predict_fnn_val,
-                           function(x) mean(apply(x, 2, RMSE, observation = y_val_arr)))
+                           function(x) mean(apply(x, 2, RMSE, observation = y_val)))
     # choose best models
     best_model_preds_val <- predict_fnn_val[order(all_rmse_val) <= model_subset]
     best_model_preds_test <- predict_fnn_test[order(all_rmse_val) <= model_subset]
     # Delete all loss data frames and loss plots from the ensembles not used for prediction
     model_to_delete <- which(order(all_rmse_val) > model_subset)
-    cp_files <- list.files(paste0(catchment, "/FNN/", model_name, "/",
-                                  folder_name, "/checkpoints"))
-    cp_numbers <- unlist(lapply(strsplit(cp_files, "_"),
-                                function(x) as.integer(
-                                  sub("run", "", x[grep("run", x)])
-                                )))
-    txt <- capture.output(file.remove(
-      paste0(catchment, "/FNN/", model_name, "/", folder_name,
-             "/checkpoints/", cp_files[cp_numbers %in% model_to_delete])))
-    txt <- capture.output(
-      file.remove(
+    if(length(model_to_delete) != 0){
+      cp_files <- list.files(paste0(catchment, "/FNN/", model_name, "/",
+                                    folder_name, "/checkpoints"))
+      cp_numbers <- unlist(lapply(strsplit(cp_files, "_"),
+                                  function(x) as.integer(
+                                    sub("run", "", x[grep("run", x)])
+                                  )))
+      txt <- capture.output(file.remove(
         paste0(catchment, "/FNN/", model_name, "/", folder_name,
-               "/training_metrics/plot_ensemble_member_",
-               model_to_delete, ".png")))
-    txt <- capture.output(
-      file.remove(
-        paste0(catchment, "/FNN/", model_name, "/", folder_name,
-               "/training_metrics/loss_ensemble_member_",
-               model_to_delete, ".feather")))
+               "/checkpoints/", cp_files[cp_numbers %in% model_to_delete])))
+      txt <- capture.output(
+        file.remove(
+          paste0(catchment, "/FNN/", model_name, "/", folder_name,
+                 "/training_metrics/plot_ensemble_member_",
+                 model_to_delete, ".png")))
+      txt <- capture.output(
+        file.remove(
+          paste0(catchment, "/FNN/", model_name, "/", folder_name,
+                 "/training_metrics/loss_ensemble_member_",
+                 model_to_delete, ".feather")))
+    }
   }
   # get mean prediction
   if(model_subset != 1){
-    # reshape list to length = n_predictions with mean predictions
+    # reshape list to length = 1 with mean predictions
     mean_pred_results_val <- best_model_preds_val %>%
       do.call(rbind, .) %>%
       as.data.frame() %>%
@@ -199,16 +196,16 @@ wt_fnn_single <- function(catchment, x_train, x_val, x_test, y_train, y_val, y_t
     mean_pred_results_test <- best_model_preds_test[[1]]
   }
   # Model Scores -------------------------------------------------------------------------
-    # scores
-    RMSE_val <- RMSE(prediction = mean_pred_results_val,
-                         observation = y_val)
-    NSE_val <- NSE(prediction = mean_pred_results_val,
+  # scores
+  RMSE_val <- RMSE(prediction = mean_pred_results_val,
                    observation = y_val)
+  NSE_val <- NSE(prediction = mean_pred_results_val,
+                 observation = y_val)
 
-    RMSE_test <- RMSE(prediction = mean_pred_results_test,
-                          observation = y_test)
-    NSE_test <- NSE(prediction = mean_pred_results_test,
+  RMSE_test <- RMSE(prediction = mean_pred_results_test,
                     observation = y_test)
+  NSE_test <- NSE(prediction = mean_pred_results_test,
+                  observation = y_test)
 
   # run time
   run_time <- paste0(round((as.numeric(Sys.time()) - as.numeric(start_time))/60, 2),

@@ -50,7 +50,7 @@ wt_fnn_optimizer <- function(catchment,
     model_scores <- read.csv(paste0(catchment, "/FNN/model_scores.csv"),
                              stringsAsFactors = FALSE)
     initial_grid <- model_scores[model_scores$data_inputs == data_inputs,
-                                 c("layers", "units", "dropout", "l1", "l2",
+                                 c("layers", "units", "dropout",
                                    "batch_size", "RMSE_val")]
     if(nrow(initial_grid) < n_random_initial_points) ini_grid_cal_flag <- TRUE
 
