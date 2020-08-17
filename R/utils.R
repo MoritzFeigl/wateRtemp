@@ -72,6 +72,11 @@ RMSE <- function(prediction, observation){
   return(sqrt(mean((prediction - observation)^2, na.rm = TRUE)))
 }
 
+MAE <- function(y_obs, y_pred){
+  mean(abs(y_obs - y_pred))
+}
+
+
 NSE <- function(prediction, observation){
   round(
     1 - (sum((prediction- observation)^2, na.rm = TRUE) /
@@ -120,3 +125,4 @@ y_reshaper <- function(y, n_timesteps, n_predictions){
   }
   return(y_arr)
 }
+

@@ -17,12 +17,12 @@
 #' @return
 #'
 #' @examples
-wt_single_rnn <- function(catchment,
-                          x_train, y_train, x_val, y_val, x_test, y_test, test, rnn_test,
-                          user_name, data_inputs, rnn_type,
-                          timesteps, units, dropout, layers,
-                          batch_size, epochs, early_stopping_patience,
-                          n_predictions, n_features, ensemble_runs, return_flag
+wt_single_rnn_fmon <- function(catchment,
+                               x_train, y_train, x_val, y_val, x_test, y_test, test, rnn_test,
+                               user_name, data_inputs, rnn_type,
+                               timesteps, units, dropout, layers,
+                               batch_size, epochs, early_stopping_patience,
+                               n_predictions, n_features, ensemble_runs, return_flag
 ){
   cat("\nRunning", as.character(rnn_type), "with:",
       "\n    layers =", layers,
@@ -101,46 +101,44 @@ wt_single_rnn <- function(catchment,
       }
     }
     output <- output %>% layer_dense(n_predictions)
-    # multiple gpu, compile
-    try(number_of_gpus <- sum(grepl("device:GPU", tf$config$experimental_list_devices())),
-        silent = TRUE)
-    try(if(number_of_gpus > 1) model <- multi_gpu_model(model, gpus = number_of_gpus),
-        silent = TRUE)
     model <- keras_model(input, output) %>%
       compile(loss = "mse",
               optimizer = "adam")
     return(model)
   }
   # Training ------------------------------------------------------------------------------
-  if(!dir.exists(paste0(catchment, "/RNN"))){
-    dir.create(paste0(catchment, "/RNN"))
+  if(!dir.exists(paste0(catchment, "/RNN_fmon"))){
+    dir.create(paste0(catchment, "/RNN_fmon"))
   }
-  if(!dir.exists(paste0(catchment, "/RNN/", model_name))){
-    dir.create(paste0(catchment, "/RNN/", model_name))
+  if(!dir.exists(paste0(catchment, "/RNN_fmon/", model_name))){
+    dir.create(paste0(catchment, "/RNN_fmon/", model_name))
   }
-  if(!dir.exists(paste0(catchment, "/RNN/", model_name, "/", folder_name))){
-    dir.create(paste0(catchment, "/RNN/", model_name, "/", folder_name))
+  if(!dir.exists(paste0(catchment, "/RNN_fmon/", model_name, "/", folder_name))){
+    dir.create(paste0(catchment, "/RNN_fmon/", model_name, "/", folder_name))
   } else {
     version_numbers <- sum(grepl(folder_name,
-                                 list.files(paste0(catchment, "/RNN/", model_name))))
+                                 list.files(paste0(catchment, "/RNN_fmon/", model_name))))
     folder_name <- paste0(folder_name, "_version", version_numbers + 1)
-    dir.create(paste0(catchment, "/RNN/", model_name, "/", folder_name))
+    dir.create(paste0(catchment, "/RNN_fmon/", model_name, "/", folder_name))
   }
-  if(!dir.exists(paste0(catchment, "/RNN/", model_name, "/", folder_name,
+  if(!dir.exists(paste0(catchment, "/RNN_fmon/", model_name, "/", folder_name,
                         "/checkpoints"))){
-    dir.create(paste0(catchment, "/RNN/", model_name, "/", folder_name,
+    dir.create(paste0(catchment, "/RNN_fmon/", model_name, "/", folder_name,
                       "/checkpoints"))
   }
-  if(!dir.exists(paste0(catchment, "/RNN/", model_name, "/", folder_name,
+  if(!dir.exists(paste0(catchment, "/RNN_fmon/", model_name, "/", folder_name,
                         "/training_metrics"))){
-    dir.create(paste0(catchment, "/RNN/", model_name, "/", folder_name,
+    dir.create(paste0(catchment, "/RNN_fmon/", model_name, "/", folder_name,
                       "/training_metrics"))
   }
+
   # Ensemble runs
   for(run in 1:ensemble_runs){
+
     model <- create_model()
+
     model_checkpoint <- callback_model_checkpoint(
-      filepath = paste0(catchment, "/RNN/", model_name, "/", folder_name,
+      filepath = paste0(catchment, "/RNN_fmon/", model_name, "/", folder_name,
                         "/checkpoints/model_checkpoint_run", run,
                         "_weights.hdf5"),
       save_best_only = TRUE)
@@ -153,6 +151,7 @@ wt_single_rnn <- function(catchment,
                                 restore_best_weights = TRUE),
         model_checkpoint),
       validation_data = list(x_val_arr, y_val_arr))
+
     if(run == 1){
       predict_rnn_val <- list(predict(model, x_val_arr))
       predict_rnn_test <- list(predict(model, x_test_arr))
@@ -161,7 +160,7 @@ wt_single_rnn <- function(catchment,
       predict_rnn_test[[run]] <- predict(model, x_test_arr)
     }
     # Plot training losses
-    png(paste0(catchment, "/RNN/", model_name, "/", folder_name,
+    png(paste0(catchment, "/RNN_fmon/", model_name, "/", folder_name,
                "/training_metrics/plot_ensemble_member_", run, ".png"),
         width = 800, heigh = 600)
     plot(history$metrics$loss, xlab = "epochs", main = "Model loss",
@@ -176,7 +175,7 @@ wt_single_rnn <- function(catchment,
       data.frame(epoch = 1:length(history$metrics$loss),
                  train_loss = history$metrics$loss,
                  val_loss = history$metrics$val_loss),
-      paste0(catchment, "/RNN/", model_name, "/", folder_name,
+      paste0(catchment, "/RNN_fmon/", model_name, "/", folder_name,
              "/training_metrics/loss_ensemble_member_", run, ".feather")
     )
   }
@@ -211,23 +210,23 @@ wt_single_rnn <- function(catchment,
     best_model_preds_test <- predict_rnn_test[order(all_rmse_val) <= model_subset]
     # Delete all loss data frames and loss plots from the ensembles not used for prediction
     model_to_delete <- which(order(all_rmse_val) > model_subset)
-    cp_files <- list.files(paste0(catchment, "/RNN/", model_name, "/",
+    cp_files <- list.files(paste0(catchment, "/RNN_fmon/", model_name, "/",
                                   folder_name, "/checkpoints"))
     cp_numbers <- unlist(lapply(strsplit(cp_files, "_"),
                                 function(x) as.integer(
                                   sub("run", "", x[grep("run", x)])
                                 )))
     txt <- capture.output(file.remove(
-      paste0(catchment, "/RNN/", model_name, "/", folder_name,
+      paste0(catchment, "/RNN_fmon/", model_name, "/", folder_name,
              "/checkpoints/", cp_files[cp_numbers %in% model_to_delete])))
     txt <- capture.output(
       file.remove(
-        paste0(catchment, "/RNN/", model_name, "/", folder_name,
+        paste0(catchment, "/RNN_fmon/", model_name, "/", folder_name,
                "/training_metrics/plot_ensemble_member_",
                model_to_delete, ".png")))
     txt <- capture.output(
       file.remove(
-        paste0(catchment, "/RNN/", model_name, "/", folder_name,
+        paste0(catchment, "/RNN_fmon/", model_name, "/", folder_name,
                "/training_metrics/loss_ensemble_member_",
                model_to_delete, ".feather")))
   }
@@ -289,8 +288,8 @@ wt_single_rnn <- function(catchment,
   # run time
   run_time <- paste0(round((as.numeric(Sys.time()) - as.numeric(start_time))/60, 2),
                      " minutes")
-  if("model_scores.csv" %in% list.files(paste0(catchment, "/RNN"))){
-    model_scores <- read.csv(paste0(catchment, "/RNN/model_scores.csv"))
+  if("model_scores.csv" %in% list.files(paste0(catchment, "/RNN_fmon"))){
+    model_scores <- read.csv(paste0(catchment, "/RNN_fmon/model_scores.csv"))
     model_scores <- rbind(model_scores,
                           data.frame("user_name" = user_name,
                                      "rnn_type" = rnn_type,
@@ -307,12 +306,12 @@ wt_single_rnn <- function(catchment,
                                      "batch_size" = batch_size,
                                      "dropout" = dropout,
                                      "ensemble_runs" = ensemble_runs,
-                                     "RMSE_val" = RMSE_rnn_val,
+                                     "RMSE_val" = round(RMSE_rnn_val, 4),
                                      "NSE_val" = NSE_val,
-                                     "RMSE_test" = RMSE_rnn_test,
+                                     "RMSE_test" = round(RMSE_rnn_test, 4),
                                      "NSE_test" = NSE_test,
                                      stringsAsFactors = FALSE))
-    write.csv(model_scores, paste0(catchment, "/RNN/model_scores.csv"), row.names = FALSE)
+    write.csv(model_scores, paste0(catchment, "/RNN_fmon/model_scores.csv"), row.names = FALSE)
 
   } else {
     model_scores <- data.frame("user_name" = user_name,
@@ -330,12 +329,12 @@ wt_single_rnn <- function(catchment,
                                "batch_size" = batch_size,
                                "dropout" = dropout,
                                "ensemble_runs" = ensemble_runs,
-                               "RMSE_val" = RMSE_rnn_val,
+                               "RMSE_val" = round(RMSE_rnn_val, 4),
                                "NSE_val" = NSE_val,
-                               "RMSE_test" = RMSE_rnn_test,
+                               "RMSE_test" = round(RMSE_rnn_test, 4),
                                "NSE_test" = NSE_test,
                                stringsAsFactors = FALSE)
-    write.csv(model_scores, paste0(catchment, "/RNN/model_scores.csv"), row.names = FALSE)
+    write.csv(model_scores, paste0(catchment, "/RNN_fmon/model_scores.csv"), row.names = FALSE)
   }
 
   # get predicted values in the same dim/format as the input data
@@ -347,12 +346,12 @@ wt_single_rnn <- function(catchment,
     pull(date) %>%
     as.POSIXct() %>%
     data.frame(date = .,
-               prediction = mean_pred_results_test, stringsAsFactors = FALSE) %>%
+               prediction = mean_pred_results_test[, 1], stringsAsFactors = FALSE) %>%
     merge(rnn_test, ., by = "date", all.x = TRUE) %>%
     select("date", starts_with("prediction"))
   # save predicted values
   feather::write_feather(test_prediction_full,
-                         paste0(catchment, "/RNN/", model_name, "/",
+                         paste0(catchment, "/RNN_fmon/", model_name, "/",
                                 folder_name, "/test_prediction.feather"))
   cat("Finished run with validation rmse =", RMSE_rnn_val, "\n\n")
   if(return_flag) return(mean(RMSE_rnn_val))

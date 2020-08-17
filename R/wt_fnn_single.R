@@ -1,6 +1,8 @@
-wt_fnn_single <- function(catchment, x_train, x_val, x_test, y_train, y_val, y_test, batch_size,
+wt_fnn_single <- function(catchment, x_train, x_val, x_test,
+                          y_train, y_val, y_test, batch_size,
                           data_inputs, layers, units, dropout, ensemble_runs,
-                          epochs, user_name, early_stopping_patience, return_flag){
+                          epochs, user_name, early_stopping_patience,
+                          test, return_flag){
 
   cat("\nRunning FNN with:",
       "\n    layers =", layers,
@@ -49,8 +51,10 @@ wt_fnn_single <- function(catchment, x_train, x_val, x_test, y_train, y_val, y_t
     output <- output %>% layer_dense(1)
     model <- keras_model(input, output)
     # multiple gpu, compile
-    try(number_of_gpus <- sum(grepl("device:GPU", tf$config$experimental_list_devices())))
-    try(if(number_of_gpus > 1)  model <- multi_gpu_model(model, gpus = number_of_gpus))
+    try(number_of_gpus <- sum(grepl("device:GPU", tf$config$experimental_list_devices())),
+        silent = TRUE)
+    try(if(number_of_gpus > 1) model <- multi_gpu_model(model, gpus = number_of_gpus),
+        silent = TRUE)
     model %>% compile(
       loss = "mse",
       optimizer = "adam"
@@ -65,6 +69,11 @@ wt_fnn_single <- function(catchment, x_train, x_val, x_test, y_train, y_val, y_t
     dir.create(paste0(catchment, "/FNN/", model_name))
   }
   if(!dir.exists(paste0(catchment, "/FNN/", model_name, "/", folder_name))){
+    dir.create(paste0(catchment, "/FNN/", model_name, "/", folder_name))
+  } else {
+    version_numbers <- sum(grepl(folder_name,
+                                 list.files(paste0(catchment, "/FNN/", model_name))))
+    folder_name <- paste0(folder_name, "_version", version_numbers + 1)
     dir.create(paste0(catchment, "/FNN/", model_name, "/", folder_name))
   }
   if(!dir.exists(paste0(catchment, "/FNN/", model_name, "/", folder_name,
@@ -227,7 +236,8 @@ wt_fnn_single <- function(catchment, x_train, x_val, x_test, y_train, y_val, y_t
                                      "RMSE_val" = RMSE_val,
                                      "NSE_val" = NSE_val,
                                      "RMSE_test" = RMSE_test,
-                                     "NSE_test" = NSE_test))
+                                     "NSE_test" = NSE_test,
+                                     stringsAsFactors = FALSE))
     write.csv(model_scores, paste0(catchment, "/FNN/model_scores.csv"), row.names = FALSE)
 
   } else {
@@ -245,7 +255,8 @@ wt_fnn_single <- function(catchment, x_train, x_val, x_test, y_train, y_val, y_t
                                "RMSE_val" = RMSE_val,
                                "NSE_val" = NSE_val,
                                "RMSE_test" = RMSE_test,
-                               "NSE_test" = NSE_test)
+                               "NSE_test" = NSE_test,
+                               stringsAsFactors = FALSE)
     write.csv(model_scores, paste0(catchment, "/FNN/model_scores.csv"), row.names = FALSE)
   }
 
@@ -255,7 +266,7 @@ wt_fnn_single <- function(catchment, x_train, x_val, x_test, y_train, y_val, y_t
     pull(date) %>%
     as.POSIXct() %>%
     data.frame(date = .,
-               prediction = mean_pred_results_test, stringsAsFactors = FALSE) %>%
+               "prediction" = mean_pred_results_test[, 1], stringsAsFactors = FALSE) %>%
     merge(test, ., by = "date", all.x = TRUE) %>%
     select("date", starts_with("prediction"))
   # save predicted values

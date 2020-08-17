@@ -23,7 +23,7 @@ wt_fnn <- function(catchment,
                    dropout = 0,
                    epochs = c(100),
                    early_stopping_patience = 5,
-                   ensemble_runs = 100,
+                   ensemble_runs = 3,
                    user_name = "R2D2"){
 
   if(user_name == "R2D2") cat('No user_name was chosen! Default user "R2D2" is running the model.\n')
@@ -135,6 +135,7 @@ wt_fnn <- function(catchment,
                                          epochs = epochs,
                                          early_stopping_patience = early_stopping_patience,
                                          user_name = user_name,
+                                         test = test,
                                          return_flag = return_flag))
       if(return_flag) return(val_rmse)
     }

@@ -23,17 +23,18 @@
 #'
 wt_randomforest <- function(catchment,
                             data_inputs = NULL,
+                            model_or_optim,
                             cv_mode,
                             no_cores = detectCores() - 1,
-                            user_name = "R2D2",
                             plot_ts = FALSE,
-                            save_importance_plot = TRUE,
-                            random_seed = NULL
-                            ){
+                            save_importance_plot = FALSE,
+                            user_name = "R2D2",
+                            n_iter = 20,
+                            n_random_initial_points = 20){
 
   if(user_name == "R2D2") cat('No user_name was chosen! Default user "R2D2" is running the model.\n')
 
-if(is.null(random_seed)) random_seed <- sample(1000:100000, 1)
+
   # 1. Data --------------------------------------------------------------------------------
   if(sum(list.files() %in% catchment) < 1){
     stop(paste0("ERROR: Cannot find catchment folder(s) in your current working directory."))
@@ -51,6 +52,11 @@ if(is.null(random_seed)) random_seed <- sample(1000:100000, 1)
             "precip"    = "simple" + additional precipitation observations
             "radiation" = "simple" + additional longwave radiation observations
             "all"       = all the above mentioned observations')
+  }
+  if(sum(model_or_optim %in% c("model", "optim")) == 0){
+    stop('\nChoose a valid model_or_optim option:
+            "model"    = pretrained model created with wt_randomforest will be loaded
+            "optim"    = a new model with hyperparameter optimization will be trained')
   }
 
   # loop variables
@@ -134,16 +140,14 @@ if(is.null(random_seed)) random_seed <- sample(1000:100000, 1)
           dir.create(file.path(paste0(catchment, "/RF_new/", model_name)))
         }
 
-        # caret Model --------------------------------------------------------------------
+        # caret Model --------------------------------------------------------------------------
         # train control
-        if(!(cv_mode %in% c("timeslice", "repCV"))) {
-          stop("cv_model can be either timeslice or repCV!")
-        }
+        if(!(cv_mode %in% c("timeslice", "repCV"))) stop("cv_model can be either timeslice or repCV!")
         if(cv_mode == "timeslice"){
           n_seeds <- ceiling((nrow(ranger_train) - 730)/60)
           seeds <- vector(mode = "list", length = n_seeds)
-          set.seed(random_seed)
-          for(i in 1:n_seeds) seeds[[i]] <- sample(10000, 200)
+          set.seed(1234)
+          for(i in 1:n_seeds) seeds[[i]] <- sample(10000, 100)
           tc <- caret::trainControl(method = "timeslice",
                              initialWindow = 730,
                              horizon = 90,
@@ -154,9 +158,11 @@ if(is.null(random_seed)) random_seed <- sample(1000:100000, 1)
                              seeds = seeds)
         }
         if(cv_mode == "repCV"){
+          # set.seed(1242)
+          # seeds <- as.list(sample(10000, 51))
           seeds <- vector(mode = "list", length = 51)
-          set.seed(random_seed)
-          for(i in 1:51) seeds[[i]] <- sample(10000, 200)
+          set.seed(1234)
+          for(i in 1:51) seeds[[i]] <- sample(10000, 100)
           tc <- caret::trainControl(method = "repeatedcv",
                              number = 10,
                              repeats = 5,
@@ -165,39 +171,85 @@ if(is.null(random_seed)) random_seed <- sample(1000:100000, 1)
                              seeds = seeds)
         }
 
-          cat("Grid search parameters.\n")
+        if(model_or_optim == "optim"){
+
+
+
+          cat("Computing initial grid.\n")
           # random initial grid
           all_mtries <- 3:(ncol(ranger_train) - 1)
-          # search grid with every 2nd mtry
-          search_grid <- expand.grid(mtry = all_mtries[all_mtries %% 2 == 1],
-                                    min.node.size = 2:10,
-                                    splitrule = "extratrees")
-          # train in parallel
+          initial_grid <- data.frame(
+            min.node.size = sample(1:10, n_random_initial_points, replace = TRUE),
+            splitrule = sample(c("variance", "extratrees"),
+                               n_random_initial_points, replace = TRUE),
+            mtry = sample(all_mtries, n_random_initial_points, replace = TRUE)
+          )
           cl <- parallel::makePSOCKcluster(no_cores)
           doParallel::registerDoParallel(cl)
           ranger_fit <- caret::train(wt ~ .,
                                      data = ranger_train,
                                      method = "ranger",
                                      trControl = tc,
-                                     tuneGrid = search_grid,
-                                     num.threads = 1)
-          parallel::stopCluster(cl)
+                                     tuneGrid = initial_grid,
+                                     num.threads = 1,
+                                     importance = "impurity")
           optimization_results <- ranger_fit$results
-          optimization_results <- merge(search_grid,
+          optimization_results <- merge(initial_grid,
                                         optimization_results,
                                         by = c("min.node.size", "splitrule", "mtry"),
                                         all.x = TRUE, sort = FALSE)
 
+          parallel::stopCluster(cl)
+
           write.csv(optimization_results,
                     file = paste0(catchment, "/RF_new/", model_name, "/optimization_scores.csv"),
                     row.names = FALSE)
+          initial_grid$Value <- optimization_results$RMSE * -1
+          for (i in 1:n_random_initial_points){
+            initial_grid$splitrule[i] <- which(c("variance", "extratrees") == initial_grid$splitrule[i])
+          }
+          initial_grid$splitrule <- as.integer(initial_grid$splitrule)
+          # Bayesian hyperparameter optimization
+          Bopt_rf <- function(min.node.size, splitrule, mtry) {
+            tg <- data.frame("min.node.size" = min.node.size,
+                             "mtry" = mtry,
+                             "splitrule" = c("variance", "extratrees")[splitrule])
+            cl <- parallel::makePSOCKcluster(no_cores)
+            doParallel::registerDoParallel(cl)
+            results <- caret::train(wt ~ .,
+                                    data = ranger_train,
+                                    method = "ranger",
+                                    trControl = tc,
+                                    tuneGrid = tg,
+                                    num.threads = 1)
+            parallel::stopCluster(cl)
+            optimization_results <- read.csv(paste0(catchment, "/RF_new/",
+                                                    model_name, "/optimization_scores.csv"))
+            optimization_results <- rbind(optimization_results, results$results)
+            write.csv(optimization_results,
+                      file = paste0(catchment, "/RF_new/", model_name, "/optimization_scores.csv"),
+                      row.names = FALSE)
 
 
+            return(list("Score" = results$results$RMSE*-1, "Pred" = 0))
+          }
+          Bopt_rnn <- suppressWarnings(
+            rBayesianOptimization::BayesianOptimization(Bopt_rf,
+                                                                  bounds = list(
+                                                                    min.node.size = c(1L, 10L),
+                                                                    splitrule = c(1L, 2L),
+                                                                    mtry = c(3L, as.integer(ncol(ranger_train) - 1))
+                                                                    ),
+                                                                  n_iter = n_iter,
+                                                                  init_grid_dt = initial_grid,
+                                                                  acq = "ucb", kappa = 10, eps = 0.0,
+                                                                  verbose = TRUE)
+          )
 
-          # try the best grid model and the two adjacent mtry values
-          best_par <- ranger_fit$bestTune
-          tg <- data.frame(mtry = best_par$mtry + c(-1, 0, 1),
-                            splitrule = "extratrees",
+          # train optimized parameter model
+          best_par <- Bopt_rnn$History[which.max(Bopt_rnn$History$Value), ]
+          tg <- data.frame(mtry = best_par$mtry,
+                            splitrule = c("variance", "extratrees", "maxstat", "beta")[best_par$splitrule],
                             min.node.size = best_par$min.node.size,
                            stringsAsFactors = FALSE)
           cl <- parallel::makePSOCKcluster(no_cores)
@@ -213,6 +265,13 @@ if(is.null(random_seed)) random_seed <- sample(1000:100000, 1)
           saveRDS(final_model, paste0(catchment, "/RF_new/", model_name, "/RF_model.rds"))
           cat("Finished hyperparameter optimization, best parameters:\n")
           for(i in 1:ncol(tg)) cat(names(tg)[i], ": ", tg[1, as.integer(i)], "\n", sep = "")
+        }
+
+        # Load optimized model
+        if(model_or_optim == "model"){
+          cat("Loading optimized model.\n")
+          ranger_fit <- readRDS(paste0(catchment, "/RF_new/", model_name, "/optimized_RF_model_", cv_mode, ".rds"))
+        }
 
         # Prediction and model diagnostics -------------------------------------------------------
         cat("Start prediction and model diagnostics")
@@ -225,14 +284,13 @@ if(is.null(random_seed)) random_seed <- sample(1000:100000, 1)
         write.csv(prediction, paste0(catchment, "/RF_new/", model_name, "/predicted_values.csv"))
 
         # scores
-        test_rmse <- round(RMSE(prediction = predict_RF, observation = ranger_test$wt), 4)
-        test_mae <- round(MAE(y_obs = ranger_test$wt, y_pred = predict_RF), 4)
+        test_rmse <- RMSE(prediction = predict_RF, observation = ranger_test$wt)
+        test_mae <- MAE(y_obs = ranger_test$wt, y_pred = predict_RF)
 
         optimization_results <- read.csv(paste0(catchment, "/RF_new/",
                                                 model_name, "/optimization_scores.csv"))
 
         optimization_results <- optimization_results[, c(1:4, 6)]
-        optimization_results[, 4:5] <- round(optimization_results[, 4:5], 4)
         names(optimization_results)[4:5] <- c("validation_RMSE", "validation_MAE")
         model_diagnostic <- data.frame(user_name = user_name,
                                   start_time = as.character(start_time),

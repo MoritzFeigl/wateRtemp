@@ -13,7 +13,7 @@ wt_fnn(
   dropout = 0,
   epochs = c(100),
   early_stopping_patience = 5,
-  ensemble_runs = 100,
+  ensemble_runs = 3,
   user_name = "R2D2"
 )
 }
