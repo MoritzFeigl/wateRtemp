@@ -21,7 +21,7 @@
 #'                 plot_ts = FALSE,
 #'                 save_importance_plot = TRUE)
 #'
-wt_randomforest <- function(catchment,
+wt_randomforest_opt <- function(catchment,
                             data_inputs = NULL,
                             model_or_optim,
                             cv_mode,

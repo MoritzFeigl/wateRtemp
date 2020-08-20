@@ -123,7 +123,6 @@ if(is.null(random_seed)) random_seed <- sample(1000:100000, 1)
           ranger_test <- ranger_test[-unique(na_test[,1]),]
         }
 
-
         # create folder
         if(!file.exists(paste0(catchment, "/RF_new"))){
         cat(paste0("Create random forest folder for catchment ", catchment, ".\n"))
@@ -187,12 +186,9 @@ if(is.null(random_seed)) random_seed <- sample(1000:100000, 1)
                                         optimization_results,
                                         by = c("min.node.size", "splitrule", "mtry"),
                                         all.x = TRUE, sort = FALSE)
-
           write.csv(optimization_results,
                     file = paste0(catchment, "/RF_new/", model_name, "/optimization_scores.csv"),
                     row.names = FALSE)
-
-
 
           # try the best grid model and the two adjacent mtry values
           best_par <- ranger_fit$bestTune
@@ -221,7 +217,11 @@ if(is.null(random_seed)) random_seed <- sample(1000:100000, 1)
         # save predicted values
         predict_RF <- predict(final_model, ranger_test)
         prediction <- data.frame(test$date, observed_wt = test$wt, predicted_wt = NA)
-        prediction$predicted_wt[-na_test[, 1]] <- predict_RF
+        if(nrow(na_test) > 0){
+          prediction$predicted_wt[-na_test[, 1]] <- predict_RF
+        } else {
+          prediction$predicted_wt <- predict_RF
+        }
         write.csv(prediction, paste0(catchment, "/RF_new/", model_name, "/predicted_values.csv"))
 
         # scores
@@ -259,21 +259,17 @@ if(is.null(random_seed)) random_seed <- sample(1000:100000, 1)
           write.csv(model_diagnostic, paste0(catchment, "/RF_new/", "model_scores.csv"), row.names = FALSE)
         }
 
-
         if(plot_ts){
-          predict_ranger <- predict(final_model, ranger_test)
-          pred_xts_ranger <- xts::xts(cbind(ranger_test, "predictions" = predict_ranger),
-                                      order.by = as.POSIXct(paste0(ranger_test$year, "-", ranger_test$mon, "-", ranger_test$day)))
-
-          pred_xts_ranger <- xts::xts(prediction[, -1],
+          pred_xts <- xts::xts(prediction[, -1],
                                       order.by = as.POSIXct(prediction$test.date))
-
           print(dygraphs::dygraph(pred_xts_ranger, main = "Random forest prediction") %>%
                   dygraphs::dyRangeSelector())
         }
 
         if(save_importance_plot){
-          cat("\nSaving importance plot in", getwd(), "\n")
+          cat("\nSaving importance plot in",
+              paste0(getwd(), "/", catchment, "/RF_new/", model_name, "/"),
+              "\n")
           importance <- caret::varImp(final_model)$importance
           v <- as.numeric(importance[,1])
           w <- rownames(importance)
@@ -285,7 +281,7 @@ if(is.null(random_seed)) random_seed <- sample(1000:100000, 1)
             ggtitle("Information Value Summary - Random Forest")+
             guides(fill=F) +
             scale_fill_gradient(low="red", high="blue")
-          ggsave(filename = paste0(catchment, "/RF_new/", model_name, "/RF_importance_plot_", cv_mode, ".png"), plot = p, device = "png",
+          ggsave(filename = paste0(catchment, "/RF_new/", model_name, "/importance_plot.png"), plot = p, device = "png",
                  dpi = "retina")
         }
       }
