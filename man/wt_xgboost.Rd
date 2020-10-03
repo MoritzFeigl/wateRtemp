@@ -5,37 +5,23 @@
 \title{wt_xgboost}
 \usage{
 wt_xgboost(
-  catchment,
-  data_inputs = NULL,
-  model_or_optim,
-  cv_mode,
-  n_iter = 30,
-  plot_ts = FALSE,
-  save_importance_plot = FALSE,
-  user_name = "R2D2"
+  train_data,
+  test_data = NULL,
+  catchment = NULL,
+  cv_mode = "repCV",
+  model_name = NULL,
+  no_cores = parallel::detectCores() - 1,
+  seed = NULL,
+  n_iter = 40,
+  n_random_initial_points = 20
 )
 }
 \arguments{
-\item{catchment}{Name of the folder with the data as a string.}
-
-\item{data_inputs}{The kind of data to be used for the model run: "simple", "precip", "radiation", "all". See Details}
-
-\item{model_or_optim}{"model" if a pretrained model should be load, or "optim" if a new model should be trained}
-
-\item{cv_mode}{The crossvalidation scheme to be used. Can be either: "timeslice", or "repCV"}
-
-\item{n_iter}{Number of iterations for the bayesian hyperparameter optimization as a integer.}
-
-\item{plot_ts}{Should a dygraphy plot of the prediction and observation be plotted? TRUE/FALSE}
-
-\item{save_importance_plot}{Should the importance plot for XGBoost be saved in the folder. TRUE/FALSE}
+\item{n_random_initial_points}{}
 }
 \value{
-None
+
 }
 \description{
-XGBoost modelling for water temperature data prepared with wt_preprocessing. Can either be used for loading pre-trained models or train a new model. The training is done in parallel and can take a while. yperparameter optimization is done using grid search and the rBayesianOptimization packages.
-}
-\details{
-This function is able to train or load a pre-trained model for water temperature prediction. The features used for the prediction are defined by the "data_inputs" variable. "simple" means only discharge Q and mean air temperature Tmean are used. "precip" means that additional to "simple", precipitation data "RR" is used. "radiation" means that additional to "simple", longwave radiation data "GL" is used. "all" means that "simple" + precipitation + radiation data is used.
+wt_xgboost
 }
