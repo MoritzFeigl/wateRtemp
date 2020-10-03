@@ -4,12 +4,19 @@
 \alias{wt_lm}
 \title{wt_lm}
 \usage{
-wt_lm(catchment, data_inputs = NULL, type = NULL, user_name = "R2D2")
+wt_lm(
+  train_data,
+  test_data = NULL,
+  catchment = NULL,
+  type = "stepLM",
+  cv_mode = "repCV",
+  model_name = NULL,
+  no_cores = parallel::detectCores() - 1,
+  seed = NULL
+)
 }
 \arguments{
-\item{catchment}{Name of the folder containing the data. Given as a string}
-
-\item{type}{}
+\item{seed}{}
 }
 \value{
 

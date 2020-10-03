@@ -5,20 +5,26 @@
 \title{wt_fnn}
 \usage{
 wt_fnn(
-  catchment,
-  data_inputs = NULL,
-  batch_size = c(10, 50, 100),
-  layers = c(2, 4, 8, 15, 20),
-  units = c(10, 30, 50, 100),
-  dropout = 0,
-  epochs = c(100),
+  train_data,
+  test_data = NULL,
+  catchment = NULL,
+  model_name = NULL,
+  no_cores = parallel::detectCores() - 1,
+  seed = NULL,
+  n_iter = 40,
+  n_random_initial_points = 20,
+  epochs = 100,
   early_stopping_patience = 5,
-  ensemble_runs = 3,
-  user_name = "R2D2"
+  ensemble_runs = 5,
+  bounds_layers = c(1, 5),
+  bounds_units = c(5, 200),
+  bounds_dropout = c(0, 0.2),
+  bounds_batch_size = c(5, 150),
+  initial_grid_from_model_scores = TRUE
 )
 }
 \arguments{
-\item{user_name}{}
+\item{initial_grid_from_model_scores}{}
 }
 \value{
 

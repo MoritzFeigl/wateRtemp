@@ -4,13 +4,13 @@
 \alias{wt_preprocess}
 \title{wt_preprocess}
 \usage{
-wt_preprocess(catchment, data, year_range)
+wt_preprocess(data, year_range, catchment)
 }
 \arguments{
-\item{year_range}{}
+\item{catchment}{}
 }
 \value{
-None
+
 }
 \description{
 wt_preprocess
