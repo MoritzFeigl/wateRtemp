@@ -148,7 +148,8 @@ wt_randomforest <- function(train_data,
                    catchment = catchment,
                    type = type,
                    model_name = model_name,
-                   model_short = model_short)
+                   model_short = model_short,
+                   model = model)
 
   save_variable_importance(model, model_short, model_name)
 

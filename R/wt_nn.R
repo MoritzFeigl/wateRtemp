@@ -247,6 +247,7 @@ wt_nn <- function(catchment, x_train, x_val, x_test = NULL, x_full_train = NULL,
       write.csv(test_prediction_full,
                 paste0(catchment, "/", model_short_type_path, "/", model_name, "/",
                        "test_data_prediction.csv"), row.names = FALSE)
+      model <- NULL
     }
     if(nn_type == "FNN"){
       save_prediction_results(mean_pred_results_full_train, train, na_train,
@@ -254,8 +255,9 @@ wt_nn <- function(catchment, x_train, x_val, x_test = NULL, x_full_train = NULL,
       save_prediction_results(mean_pred_results_test, test, na_test, model_short, model_name,
                               "test_data", type = type)
     }
-    if(nn_type == "RNN"){}
+
     # write model diagnostics
+
     cv_or_val_results <- data.frame("RMSE" = RMSE_val, "MAE" = MAE_val)
     model_diagnostic(train_prediction = mean_pred_results_full_train,
                      train_data = data.frame(wt = y_full_train),
@@ -267,7 +269,8 @@ wt_nn <- function(catchment, x_train, x_val, x_test = NULL, x_full_train = NULL,
                      catchment = catchment,
                      type = type,
                      model_name = model_name,
-                     model_short = model_short)
+                     model_short = model_short,
+                     model = model)
   } else{
     cat("validation RMSE:", RMSE_val, "\n")
     return(RMSE_val)

@@ -229,6 +229,7 @@ wt_fnn <- function(train_data,
     top_n(n = 1, wt = Value) %>%
     mutate(dropout = round(dropout, 2)) %>%
     select(-Value)
+  if(nrow(top_n_model_results) != 1) top_n_model_results <- top_n_model_results[1, ]
   set.seed(seed)
   wt_nn(
     layers = top_n_model_results$layers,

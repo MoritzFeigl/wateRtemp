@@ -224,7 +224,8 @@ wt_xgboost <- function(train_data,
                    catchment = catchment,
                    type = type,
                    model_name = model_name,
-                   model_short = model_short)
+                   model_short = model_short,
+                   model = model)
   # importasnce plot
   save_variable_importance(model, model_short, model_name)
 }

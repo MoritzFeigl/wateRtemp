@@ -124,5 +124,6 @@ wt_lm <- function(train_data,
                    catchment = catchment,
                    type = type,
                    model_name = model_name,
-                   model_short = model_short)
+                   model_short = model_short,
+                   model = model)
 }
