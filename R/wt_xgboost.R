@@ -42,8 +42,10 @@ wt_xgboost <- function(train_data,
   # remove NA rows
   na_train <- which(is.na(train_data), arr.ind = TRUE)
   if(nrow(na_train) > 0) train_data <- train_data[-unique(na_train[,1]),]
+  if(!is.null(test_data)) {
   na_test <- which(is.na(test_data), arr.ind = TRUE)
   if(nrow(na_test) > 0) test_data <- test_data[-na_test[,1],]
+  }
   # random seed
   if(is.null(seed)) seed <- sample(1000:100000, 1)
 
