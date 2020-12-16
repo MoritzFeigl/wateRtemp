@@ -25,6 +25,10 @@ wt_fnn <- function(train_data,
                    test_data = NULL,
                    catchment = NULL,
                    model_name = NULL,
+<<<<<<< HEAD
+=======
+                   no_cores = parallel::detectCores() - 1,
+>>>>>>> 665bd01ae0a173f48e7914981360a5a4bd0f02ae
                    seed = NULL,
                    n_iter = 40,
                    n_random_initial_points = 20,
@@ -229,8 +233,12 @@ wt_fnn <- function(train_data,
     top_n(n = 1, wt = Value) %>%
     mutate(dropout = round(dropout, 2)) %>%
     select(-Value)
+<<<<<<< HEAD
   if(nrow(top_n_model_results) != 1) top_n_model_results <- top_n_model_results[1, ]
   set.seed(seed)
+=======
+
+>>>>>>> 665bd01ae0a173f48e7914981360a5a4bd0f02ae
   wt_nn(
     layers = top_n_model_results$layers,
     units = top_n_model_results$units,
@@ -256,6 +264,10 @@ wt_fnn <- function(train_data,
     start_time = start_time,
     seed = seed,
     nn_type = "FNN",
+<<<<<<< HEAD
     test = test,
     train = train)
+=======
+    test = test)
+>>>>>>> 665bd01ae0a173f48e7914981360a5a4bd0f02ae
 }

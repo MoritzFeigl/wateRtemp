@@ -26,6 +26,10 @@ wt_rnn <- function(train_data,
                    type = "LSTM",
                    catchment = NULL,
                    model_name = NULL,
+<<<<<<< HEAD
+=======
+                   no_cores = parallel::detectCores() - 1,
+>>>>>>> 665bd01ae0a173f48e7914981360a5a4bd0f02ae
                    seed = NULL,
                    n_iter = 40,
                    n_random_initial_points = 20,
@@ -191,8 +195,67 @@ wt_rnn <- function(train_data,
       initial_grid <- rbind(initial_grid, additional_grid_points)
     } else {
       initial_grid <- cbind(grid, grid_results)
+<<<<<<< HEAD
+=======
     }
   }
+  # Bayesian Hyperparameter optimization
+  cat("Bayesian Hyperparameter Optimization:\n")
+  if(nrow(initial_grid) > n_random_initial_points){
+    n_iter <- n_iter - (nrow(initial_grid) - n_random_initial_points)
+    cat(nrow(initial_grid) - n_random_initial_points,
+        "iterations were already computed\n")
+  }
+  colnames(initial_grid)[ncol(initial_grid)] <- "Value"
+  if(n_iter > 0){
+    # function to be optimized
+    Bopt_nn_model <- function(layers, units, dropout,  batch_size, timesteps) {
+      results <- wt_nn(
+        x_train = x_train,
+        y_train = y_train,
+        x_val = x_val,
+        y_val = y_val,
+        x_test = x_test,
+        y_test = y_test,
+        x_full_train = x_full_train,
+        y_full_train = y_full_train,
+        catchment = catchment,
+        layers = layers,
+        units = units,
+        dropout = dropout,
+        batch_size = batch_size,
+        timesteps = timesteps,
+        epochs = epochs,
+        early_stopping_patience = early_stopping_patience,
+        ensemble_runs = 1,
+        model_short = model_short,
+        model_name = model_name,
+        seed = seed,
+        nn_type = "RNN",
+        type = type,
+        n_features = (ncol(train_data)-2))
+      return(list("Score" = results*-1, "Pred" = 0))
+>>>>>>> 665bd01ae0a173f48e7914981360a5a4bd0f02ae
+    }
+    initial_grid$Value <- initial_grid$Value * -1
+    Bopt_nn <- rBayesianOptimization::BayesianOptimization(
+      Bopt_nn_model,
+      bounds = list(layers = as.integer(bounds_layers),
+                    units = as.integer(bounds_units),
+                    dropout = bounds_dropout,
+                    batch_size = as.integer(bounds_batch_size),
+                    timesteps = as.integer(bounds_timesteps)),
+      n_iter = n_iter,
+      init_grid_dt = initial_grid,
+      acq = "ucb", kappa = 2.576, eps = 0.0,
+      verbose = TRUE)
+    all_model_results <- Bopt_nn$History
+  } else {
+    # if all iterations are done -> use initial grid
+    all_model_results <- initial_grid
+    all_model_results$Value <- all_model_results$Value * -1
+  }
+<<<<<<< HEAD
   # Bayesian Hyperparameter optimization
   cat("Bayesian Hyperparameter Optimization:\n")
   if(nrow(initial_grid) > n_random_initial_points){
@@ -249,6 +312,8 @@ wt_rnn <- function(train_data,
     all_model_results <- initial_grid
     all_model_results$Value <- all_model_results$Value * -1
   }
+=======
+>>>>>>> 665bd01ae0a173f48e7914981360a5a4bd0f02ae
 
   # run best model as ensemble and save results
   cat("Run the best performing model as ensemble:\n")
@@ -256,8 +321,12 @@ wt_rnn <- function(train_data,
     top_n(n = 1, wt = Value) %>%
     mutate(dropout = round(dropout, 2)) %>%
     select(-Value)
+<<<<<<< HEAD
   if(nrow(top_n_model_results) != 1) top_n_model_results <- top_n_model_results[1, ]
   set.seed(seed)
+=======
+
+>>>>>>> 665bd01ae0a173f48e7914981360a5a4bd0f02ae
   wt_nn(
     layers = top_n_model_results$layers,
     units = top_n_model_results$units,

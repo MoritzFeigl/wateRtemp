@@ -19,6 +19,7 @@ wt_nn <- function(catchment, x_train, x_val, x_test = NULL, x_full_train = NULL,
 
   if(!save_model_and_prediction){
     if(nn_type == "FNN"){
+<<<<<<< HEAD
       cat("layers = ", layers,
           ", units = ", units,
           ", dropout = ", dropout,
@@ -33,6 +34,21 @@ wt_nn <- function(catchment, x_train, x_val, x_test = NULL, x_full_train = NULL,
           ", batch_size = ", batch_size,
           ", timesteps = ", timesteps,
           ", ensemble_runs = ", ensemble_runs, ", ", sep = "")
+=======
+      cat("layers =", layers,
+          "units =", units,
+          "dropout =", dropout,
+          "batch_size =", batch_size,
+          "ensemble_runs =", ensemble_runs, ": ")
+    }
+    if(nn_type == "RNN"){
+      cat("layers =", layers,
+          "units =", units,
+          "dropout =", dropout,
+          "batch_size =", batch_size,
+          "timesteps =", timesteps,
+          "ensemble_runs =", ensemble_runs, ": ")
+>>>>>>> 665bd01ae0a173f48e7914981360a5a4bd0f02ae
     }
   }
   # path depending on type
@@ -247,7 +263,10 @@ wt_nn <- function(catchment, x_train, x_val, x_test = NULL, x_full_train = NULL,
       write.csv(test_prediction_full,
                 paste0(catchment, "/", model_short_type_path, "/", model_name, "/",
                        "test_data_prediction.csv"), row.names = FALSE)
+<<<<<<< HEAD
       model <- NULL
+=======
+>>>>>>> 665bd01ae0a173f48e7914981360a5a4bd0f02ae
     }
     if(nn_type == "FNN"){
       save_prediction_results(mean_pred_results_full_train, train, na_train,
@@ -255,9 +274,14 @@ wt_nn <- function(catchment, x_train, x_val, x_test = NULL, x_full_train = NULL,
       save_prediction_results(mean_pred_results_test, test, na_test, model_short, model_name,
                               "test_data", type = type)
     }
+<<<<<<< HEAD
 
     # write model diagnostics
 
+=======
+    if(nn_type == "RNN"){}
+    # write model diagnostics
+>>>>>>> 665bd01ae0a173f48e7914981360a5a4bd0f02ae
     cv_or_val_results <- data.frame("RMSE" = RMSE_val, "MAE" = MAE_val)
     model_diagnostic(train_prediction = mean_pred_results_full_train,
                      train_data = data.frame(wt = y_full_train),
@@ -269,8 +293,12 @@ wt_nn <- function(catchment, x_train, x_val, x_test = NULL, x_full_train = NULL,
                      catchment = catchment,
                      type = type,
                      model_name = model_name,
+<<<<<<< HEAD
                      model_short = model_short,
                      model = model)
+=======
+                     model_short = model_short)
+>>>>>>> 665bd01ae0a173f48e7914981360a5a4bd0f02ae
   } else{
     cat("validation RMSE:", RMSE_val, "\n")
     return(RMSE_val)
