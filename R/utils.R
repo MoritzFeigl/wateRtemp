@@ -103,29 +103,14 @@ MAE <- function(prediction, observation){
 model_diagnostic <- function(train_prediction, train_data,
                              test_prediction = NULL, test_data,
                              cv_mode, cv_or_val_results, start_time,
-<<<<<<< HEAD
                              catchment, type, model_name, model_short, model = NULL){
-=======
-<<<<<<< HEAD
-                             catchment, type, model_name, model_short, model = NULL){
-=======
-                             catchment, type, model_name, model_short){
->>>>>>> 665bd01ae0a173f48e7914981360a5a4bd0f02ae
->>>>>>> 1e4add08b8a88605b16127b53087b7aab0597d42
   if(is.null(type)) {
     type <- NA
     type_path <- ""
   } else {
     type_path <- paste0(type, "/")
   }
-<<<<<<< HEAD
   if(type == "LM") type_path <- ""
-=======
-<<<<<<< HEAD
-  if(type == "LM") type_path <- ""
-=======
->>>>>>> 665bd01ae0a173f48e7914981360a5a4bd0f02ae
->>>>>>> 1e4add08b8a88605b16127b53087b7aab0597d42
   # training performance
   train_rmse <- RMSE(train_prediction, train_data$wt)
   train_mae <- MAE(train_prediction, train_data$wt)
@@ -181,36 +166,16 @@ model_diagnostic <- function(train_prediction, train_data,
       paste0("/",catchment, "/", model_short, "/model_scores.csv\n"))
   cat("The trained model is saved in",
       paste0("/", catchment, "/", model_short, "/", type_path, model_name, "/model.rds\n"))
-<<<<<<< HEAD
   if(!is.null(model)){
     saveRDS(model, paste0(catchment, "/", model_short, "/", type_path, model_name, "/model.rds"))
   }
-=======
-<<<<<<< HEAD
-  if(!is.null(model)){
-    saveRDS(model, paste0(catchment, "/", model_short, "/", type_path, model_name, "/model.rds"))
-  }
-=======
-  saveRDS(model, paste0(catchment, "/", model_short, "/", type_path, model_name, "/model.rds"))
-
->>>>>>> 665bd01ae0a173f48e7914981360a5a4bd0f02ae
->>>>>>> 1e4add08b8a88605b16127b53087b7aab0597d42
 }
 
 # save prediction results
 save_prediction_results <- function(prediction, data, na_data, model_short,
                                     model_name, data_name, type = NULL){
-<<<<<<< HEAD
   type_path <- ifelse(is.null(type) | type == "LM", "", paste0(type, "/"))
 
-=======
-<<<<<<< HEAD
-  type_path <- ifelse(is.null(type) | type == "LM", "", paste0(type, "/"))
-
-=======
-  type_path <- ifelse(is.null(type), "", paste0(type, "/"))
->>>>>>> 665bd01ae0a173f48e7914981360a5a4bd0f02ae
->>>>>>> 1e4add08b8a88605b16127b53087b7aab0597d42
   results <- data.frame(data$date, observed_wt = data$wt, predicted_wt = NA)
   if(nrow(na_data) > 0){
     results$predicted_wt[-na_data[, 1]] <- prediction
