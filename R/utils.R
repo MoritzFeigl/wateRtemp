@@ -110,7 +110,6 @@ model_diagnostic <- function(train_prediction, train_data,
   } else {
     type_path <- paste0(type, "/")
   }
-  if(type == "LM") type_path <- ""
   # training performance
   train_rmse <- RMSE(train_prediction, train_data$wt)
   train_mae <- MAE(train_prediction, train_data$wt)
@@ -164,17 +163,18 @@ model_diagnostic <- function(train_prediction, train_data,
   }
   cat("\nModel results are saved in",
       paste0("/",catchment, "/", model_short, "/model_scores.csv\n"))
-  cat("The trained model is saved in",
-      paste0("/", catchment, "/", model_short, "/", type_path, model_name, "/model.rds\n"))
+
   if(!is.null(model)){
     saveRDS(model, paste0(catchment, "/", model_short, "/", type_path, model_name, "/model.rds"))
+    cat("The trained model is saved in",
+        paste0("/", catchment, "/", model_short, "/", type_path, model_name, "/model.rds\n"))
   }
 }
 
 # save prediction results
-save_prediction_results <- function(prediction, data, na_data, model_short,
+save_prediction_results <- function(catchment = catchment, prediction, data, na_data, model_short,
                                     model_name, data_name, type = NULL){
-  type_path <- ifelse(is.null(type) | type == "LM", "", paste0(type, "/"))
+  type_path <- ifelse(is.null(type), "", paste0(type, "/"))
 
   results <- data.frame(data$date, observed_wt = data$wt, predicted_wt = NA)
   if(nrow(na_data) > 0){

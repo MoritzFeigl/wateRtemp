@@ -217,11 +217,11 @@ wt_xgboost <- function(train_data,
   cv_or_val_results <- model$results[which.min(model$results$RMSE), c("RMSE", "MAE")]
   # model prediction
   suppressWarnings({train_prediction <- predict(model, train_data)})
-  save_prediction_results(train_prediction, train, na_train,
+  save_prediction_results(catchment,train_prediction, train, na_train,
                           model_short, model_name, "train_data", type)
   if(!is.null(test_data)) {
     suppressWarnings({test_prediction <- predict(model, test_data)})
-    save_prediction_results(test_prediction, test, na_test,
+    save_prediction_results(catchment,test_prediction, test, na_test,
                             model_short, model_name, "test_data", type)
   }
   # model diagnostics
