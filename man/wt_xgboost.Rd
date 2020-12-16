@@ -17,11 +17,34 @@ wt_xgboost(
 )
 }
 \arguments{
-\item{n_random_initial_points}{}
-}
-\value{
+\item{train_data}{Data frame containing training data created by using wt_preprocessing()}
 
+\item{test_data}{Data frame containing test data created by using wt_preprocessing()}
+
+\item{catchment}{Catchment name as string, used for storing results in current working directory.}
+
+\item{cv_mode}{Cross-validation mode. Can either be "repCV" for a 5times repeated 10-fold CV or "timeseriesCV" for a timeslice CV using intial window=730, horizon=90 and skip=60.}
+
+\item{model_name}{Name of this particular model run as string, used for storing results in the catchment folder.}
+
+\item{no_cores}{Number of cores used for computation. If NULL parallel::detectCores() - 1 is applied.}
+
+\item{seed}{Random seed.}
+
+\item{n_iter}{Number of iteration steps for bayesian hyperparameter optimization.}
+
+\item{n_random_initial_points}{Number of sampled initial random points for bayesian hyperparameter optimization}
 }
 \description{
-wt_xgboost
+XGBoost implementation for stream water temperature prediction including Bayesian hyperparameter optimization. All results are stored automatically in the folder catchment/model_name.
+}
+\examples{
+\dontrun{
+data(Aschach)
+wt_preprocess(Aschach)
+train_data <- feather::read_feather("Aschach/train_data.feather")
+test_data <- feather::read_feather("Aschach/test_data.feather")
+
+wt_xgboost(train_data, test_data, "Aschach", "repCV", "standard_xgboost")
+}
 }

@@ -1,13 +1,41 @@
 Package: wateRtemp
 Type: Package
 Title: Water temperature prediction modelling
-Version: 0.1.0
+Version: 0.2.0
 Author: Moritz Feigl, Katharina Lebiedzinski
 Maintainer: Moritz Feigl <moritz.feigl@boku.ac.at>
-Description: Water temperature modelling with regression models, random forest, XGBoost, LSTM.
+Description: Water temperature modelling with regression models, random forest, XGBoost and Neural networks.
 License: Apache License (>= 2.0)
 Encoding: UTF-8
 LazyData: true
-Depends: caret, ggplot2, keras, tensorflow, parallel, rBayesianOptimization, feather, ranger, xgboost, abind, dplyr, tidyr
+Depends: 
+    caret,
+    ggplot2,
+    keras,
+    tensorflow,
+    parallel,
+    rBayesianOptimization,
+    feather,
+    ranger,
+    xgboost,
+    abind,
+    dplyr,
+    tidyr,
+    doParallel,
+    R (>= 2.10)
 Imports: 
+    caret,
+    ggplot2,
+    keras,
+    tensorflow,
+    parallel,
+    rBayesianOptimization,
+    feather,
+    ranger,
+    xgboost,
+    abind,
+    dplyr,
+    tidyr,
+    doParallel,
+    utils
 RoxygenNote: 7.1.1

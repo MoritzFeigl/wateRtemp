@@ -1,14 +1,24 @@
 #' wt_preprocess
 #'
-#' @param data
-#' @param year_range
-#' @param catchment
+#' Preprocessing data for stream water temperature prediction. All results are stored automatically in the folder catchment in the current working directory.
+
 #'
-#' @return
+#' @param data data frame containing the variables: year, month, day, Q, P, Ta_min, Ta_max, Ta, wt, GL
+#' @param year_range vector containing the first and last year to use. Only relevant in case not all available years should be used.
+#' @param catchment character used to create the folder in which the resulting preprocessed training and test data sets get stored.
+#'
 #' @export
 #'
 #' @examples
-wt_preprocess <- function(data, year_range, catchment){
+#' \dontrun{
+#' data(Aschach)
+#' wt_preprocess(Aschach)
+#' train_data <- feather::read_feather("Aschach/train_data.feather")
+#' test_data <- feather::read_feather("Aschach/test_data.feather")
+#'}
+wt_preprocess <- function(data,
+                          year_range = c(min(data$year), max(data$year)),
+                          catchment = deparse(substitute(data))){
 
   if(data$year[1] > tail(data$year, 1)){
     stop(cat("Data needs to be orded from earliest date onwards.",

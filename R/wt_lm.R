@@ -1,18 +1,27 @@
 #' wt_lm
 #'
-#' @param train_data
-#' @param test_data
-#' @param catchment
-#' @param type
-#' @param cv_mode
-#' @param model_name
-#' @param no_cores
-#' @param seed
+#' Multiple linear regression and step-wise linear regression implementation for stream water temperature prediction including Bayesian hyperparameter optimization. All results are stored automatically in the folder catchment/model_name.
 #'
-#' @return
+#' @param train_data Data frame containing training data created by using wt_preprocessing()
+#' @param test_data Data frame containing test data created by using wt_preprocessing()
+#' @param catchment Catchment name as string, used for storing results in current working directory.
+#' @param type Can be either "LM" for a multiple regression model of the form wt ~ Ta + Q, or "stepLM" for a step-wise linear regression model using all available variables and their interactions.
+#' @param cv_mode Cross-validation mode. Only relvenat when using type="stepLM". Can either be "repCV" for a 5times repeated 10-fold CV or "timeseriesCV" for a timeslice CV using intial window=730, horizon=90 and skip=60.
+#' @param model_name Name of this particular model run as string, used for storing results in the catchment folder.
+#' @param no_cores Number of cores used for computation. If NULL parallel::detectCores() - 1 is applied.
+#' @param seed Random seed.
+#'
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' data(Aschach)
+#' wt_preprocess(Aschach)
+#' train_data <- feather::read_feather("Aschach/train_data.feather")
+#' test_data <- feather::read_feather("Aschach/test_data.feather")
+#'
+#' wt_lm(train_data, test_data, "Aschach", "stepLM", "repCV", "standard_stepLM")
+#' }
 wt_lm <- function(train_data,
                   test_data = NULL,
                   catchment = NULL,

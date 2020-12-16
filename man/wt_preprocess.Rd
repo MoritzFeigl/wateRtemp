@@ -4,14 +4,27 @@
 \alias{wt_preprocess}
 \title{wt_preprocess}
 \usage{
-wt_preprocess(data, year_range, catchment)
+wt_preprocess(
+  data,
+  year_range = c(min(data$year), max(data$year)),
+  catchment = deparse(substitute(data))
+)
 }
 \arguments{
-\item{catchment}{}
-}
-\value{
+\item{data}{data frame containing the variables: year, month, day, Q, P, Ta_min, Ta_max, Ta, wt, GL}
 
+\item{year_range}{vector containing the first and last year to use. Only relevant in case not all available years should be used.}
+
+\item{catchment}{character used to create the folder in which the resulting preprocessed training and test data sets get stored.}
 }
 \description{
-wt_preprocess
+Preprocessing data for stream water temperature prediction. All results are stored automatically in the folder catchment in the current working directory.
+}
+\examples{
+\dontrun{
+data(Aschach)
+wt_preprocess(Aschach)
+train_data <- feather::read_feather("Aschach/train_data.feather")
+test_data <- feather::read_feather("Aschach/test_data.feather")
+}
 }

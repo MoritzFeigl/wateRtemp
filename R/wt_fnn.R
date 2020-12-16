@@ -1,26 +1,36 @@
 #' wt_fnn
 #'
-#' @param train_data
-#' @param test_data
-#' @param catchment
-#' @param model_name
-#' @param no_cores
-#' @param seed
-#' @param n_iter
-#' @param n_random_initial_points
-#' @param epochs
-#' @param early_stopping_patience
-#' @param ensemble_runs
-#' @param bounds_layers
-#' @param bounds_units
-#' @param bounds_dropout
-#' @param bounds_batch_size
-#' @param initial_grid_from_model_scores
+#' Feedforward neural network implementation for stream water temperature prediction including Bayesian hyperparameter optimization. All results are stored automatically in the folder catchment/model_name.
 #'
-#' @return
+#'
+#'
+#' @param train_data Data frame containing training data created by using wt_preprocessing()
+#' @param test_data Data frame containing test data created by using wt_preprocessing()
+#' @param catchment Catchment name as string, used for storing results in current working directory.
+#' @param model_name Name of this particular model run as string, used for storing results in the catchment folder.
+#' @param seed Random seed.
+#' @param n_iter Number of iteration steps for bayesian hyperparameter optimization.
+#' @param n_random_initial_points Number of sampled initial random points for bayesian hyperparameter optimization
+#' @param epochs integer. Number of training epochs
+#' @param early_stopping_patience Integer. Early stopping patience, i.e. the number of epochs with no improvement to waite before stopping the training
+#' @param ensemble_runs Number of ensembles used for making the finel model.
+#' @param bounds_layers Vector containing the lower and upper bound of the numbers of layers used in the bayesian hyperparameter optimization.
+#' @param bounds_units Vector containing the lower and upper bound of the numbers of units used in the bayesian hyperparameter optimization.
+#' @param bounds_dropout Vector containing the lower and upper bound of the numbers of dropout used in the bayesian hyperparameter optimization.
+#' @param bounds_batch_size Vector containing the lower and upper bound of the numbers of batch size used in the bayesian hyperparameter optimization.
+#' @param initial_grid_from_model_scores logical. Should previous results be used as initial grid for the hyperparameter optimization? These have to be stored in the model_name folder under model_scores.csv
+#'
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' data(Aschach)
+#' wt_preprocess(Aschach)
+#' train_data <- feather::read_feather("Aschach/train_data.feather")
+#' test_data <- feather::read_feather("Aschach/test_data.feather")
+#'
+#' wt_fnn(train_data, test_data, "Aschach", "standard_FNN")
+#'}
 wt_fnn <- function(train_data,
                    test_data = NULL,
                    catchment = NULL,

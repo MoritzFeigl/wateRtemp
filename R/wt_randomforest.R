@@ -1,17 +1,26 @@
 #' wt_randomforest
 #'
-#' @param train_data
-#' @param test_data
-#' @param catchment
-#' @param cv_mode
-#' @param model_name
-#' @param no_cores
-#' @param seed
+#' Randomforest implementation for stream water temperature prediction including Bayesian hyperparameter optimization. All results are stored automatically in the folder catchment/model_name.
 #'
-#' @return
+#' @param train_data Data frame containing training data created by using wt_preprocessing()
+#' @param test_data Data frame containing test data created by using wt_preprocessing()
+#' @param catchment Catchment name as string, used for storing results in current working directory.
+#' @param cv_mode Cross-validation mode. Can either be "repCV" for a 5times repeated 10-fold CV or "timeseriesCV" for a timeslice CV using intial window=730, horizon=90 and skip=60.
+#' @param model_name Name of this particular model run as string, used for storing results in the catchment folder.
+#' @param no_cores Number of cores used for computation. If NULL parallel::detectCores() - 1 is applied.
+#' @param seed Random seed.
+#'
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' data(Aschach)
+#' wt_preprocess(Aschach)
+#' train_data <- feather::read_feather("Aschach/train_data.feather")
+#' test_data <- feather::read_feather("Aschach/test_data.feather")
+#'
+#' wt_randomforest(train_data, test_data, "Aschach", "repCV", "standard_rf")
+#' }
 wt_randomforest <- function(train_data,
                             test_data = NULL,
                             catchment = NULL,

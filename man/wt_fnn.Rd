@@ -9,7 +9,6 @@ wt_fnn(
   test_data = NULL,
   catchment = NULL,
   model_name = NULL,
-  no_cores = parallel::detectCores() - 1,
   seed = NULL,
   n_iter = 40,
   n_random_initial_points = 20,
@@ -24,11 +23,46 @@ wt_fnn(
 )
 }
 \arguments{
-\item{initial_grid_from_model_scores}{}
-}
-\value{
+\item{train_data}{Data frame containing training data created by using wt_preprocessing()}
 
+\item{test_data}{Data frame containing test data created by using wt_preprocessing()}
+
+\item{catchment}{Catchment name as string, used for storing results in current working directory.}
+
+\item{model_name}{Name of this particular model run as string, used for storing results in the catchment folder.}
+
+\item{seed}{Random seed.}
+
+\item{n_iter}{Number of iteration steps for bayesian hyperparameter optimization.}
+
+\item{n_random_initial_points}{Number of sampled initial random points for bayesian hyperparameter optimization}
+
+\item{epochs}{integer. Number of training epochs}
+
+\item{early_stopping_patience}{Integer. Early stopping patience, i.e. the number of epochs with no improvement to waite before stopping the training}
+
+\item{ensemble_runs}{Number of ensembles used for making the finel model.}
+
+\item{bounds_layers}{Vector containing the lower and upper bound of the numbers of layers used in the bayesian hyperparameter optimization.}
+
+\item{bounds_units}{Vector containing the lower and upper bound of the numbers of units used in the bayesian hyperparameter optimization.}
+
+\item{bounds_dropout}{Vector containing the lower and upper bound of the numbers of dropout used in the bayesian hyperparameter optimization.}
+
+\item{bounds_batch_size}{Vector containing the lower and upper bound of the numbers of batch size used in the bayesian hyperparameter optimization.}
+
+\item{initial_grid_from_model_scores}{logical. Should previous results be used as initial grid for the hyperparameter optimization? These have to be stored in the model_name folder under model_scores.csv}
 }
 \description{
-wt_fnn
+Feedforward neural network implementation for stream water temperature prediction including Bayesian hyperparameter optimization. All results are stored automatically in the folder catchment/model_name.
+}
+\examples{
+\dontrun{
+data(Aschach)
+wt_preprocess(Aschach)
+train_data <- feather::read_feather("Aschach/train_data.feather")
+test_data <- feather::read_feather("Aschach/test_data.feather")
+
+wt_fnn(train_data, test_data, "Aschach", "standard_FNN")
+}
 }
