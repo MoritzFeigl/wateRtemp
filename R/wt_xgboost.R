@@ -42,6 +42,10 @@ wt_xgboost <- function(train_data,
   # remove NA rows
   na_train <- which(is.na(train_data), arr.ind = TRUE)
   if(nrow(na_train) > 0) train_data <- train_data[-unique(na_train[,1]),]
+<<<<<<< HEAD
+  if(!is.null(test_data)) {
+=======
+<<<<<<< HEAD
   if(!is.null(test_data)) {
   na_test <- which(is.na(test_data), arr.ind = TRUE)
   if(nrow(na_test) > 0) test_data <- test_data[-na_test[,1],]
@@ -76,6 +80,44 @@ wt_xgboost <- function(train_data,
                               verboseIter = TRUE,
                               seeds = seeds)
   }
+=======
+>>>>>>> 1e4add08b8a88605b16127b53087b7aab0597d42
+  na_test <- which(is.na(test_data), arr.ind = TRUE)
+  if(nrow(na_test) > 0) test_data <- test_data[-na_test[,1],]
+  # random seed
+  if(is.null(seed)) seed <- sample(1000:100000, 1)
+
+  # XGBoost
+  # Train control settings
+  if(cv_mode == "timeseriesCV"){
+    n_seeds <- ceiling((nrow(train_data) - 730)/60)
+    seeds <- vector(mode = "list", length = n_seeds)
+    set.seed(seed)
+    for(i in 1:n_seeds) seeds[[i]] <- sample(10000, 200)
+    tc <- caret::trainControl(method = "timeslice",
+                              initialWindow = 730,
+                              horizon = 90,
+                              fixedWindow = FALSE,
+                              allowParallel = TRUE,
+                              verboseIter = TRUE,
+                              skip = 60,
+                              seeds = seeds)
+  }
+  if(cv_mode == "repCV"){
+    seeds <- vector(mode = "list", length = 51)
+    set.seed(seed)
+    for(i in 1:51) seeds[[i]] <- sample(10000, 200)
+    tc <- caret::trainControl(method = "repeatedcv",
+                              number = 10,
+                              repeats = 5,
+                              allowParallel = TRUE,
+                              verboseIter = TRUE,
+                              seeds = seeds)
+  }
+<<<<<<< HEAD
+=======
+>>>>>>> 665bd01ae0a173f48e7914981360a5a4bd0f02ae
+>>>>>>> 1e4add08b8a88605b16127b53087b7aab0597d42
 
   # optimization parameter bounds
   parameter_bounds <- list(
@@ -226,8 +268,17 @@ wt_xgboost <- function(train_data,
                    catchment = catchment,
                    type = type,
                    model_name = model_name,
+<<<<<<< HEAD
                    model_short = model_short,
                    model = model)
+=======
+<<<<<<< HEAD
+                   model_short = model_short,
+                   model = model)
+=======
+                   model_short = model_short)
+>>>>>>> 665bd01ae0a173f48e7914981360a5a4bd0f02ae
+>>>>>>> 1e4add08b8a88605b16127b53087b7aab0597d42
   # importasnce plot
   save_variable_importance(model, model_short, model_name)
 }
