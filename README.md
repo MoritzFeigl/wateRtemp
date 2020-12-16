@@ -29,11 +29,12 @@ bayesian hyperparameter optimization. The main functions are:
   - `wt_rnn()` for recurrent neural networks: LSTMs and GRUs
 
 Additionally, prepared data sets of 10 central european catchments are
-included.An overview of these data sets can be easily obtained by:
+included. An overview of available data sets can be obtained by:
 
 ``` r
-names(data())
-#> [1] "title"   "header"  "results" "footer"
+as.data.frame(data(package = "wateRtemp")$results)$Item
+#>  [1] "Aschach"      "Donau"        "Enns"         "Erlauf"       "Inn"         
+#>  [6] "Kleine_Muehl" "Saalach"      "Salzach"      "Traisen"      "Ybbs"
 ```
 
 For further details on these catchment data sets refer to Feigl, M.,
