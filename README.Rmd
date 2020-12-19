@@ -35,11 +35,10 @@ watRtemp includes 7 machine learning models with already implemented bayesian hy
 
 * `wt_rnn()` for recurrent neural networks: LSTMs and GRUs
 
-Additionally, prepared data sets of 10 central european catchments are included. An overview of available data sets can be obtained by:
+Additionally, prepared a synthetic data sets of for testin wateRtemp functionalities is included and can be used by running:
 ```{r}
-as.data.frame(data(package = "wateRtemp")$results)$Item
+data("test_catchment")
 ```
-For further details on these catchment data sets refer to Feigl, M., Lebidzinski, K., Herrnegger, M. and Schulz, K.: Machine learning methods for stream water temperature prediction.
 
 ## Installation
 
@@ -56,40 +55,40 @@ This is a basic example of how to preprocess data and how to apply different mac
 library(wateRtemp)
 ```
 
-For using watRtemp preprocessing and modelling functions, the necessary data should be available as a data frame. Example data frames are included in wateRtemp and can be called by `data("Aschach")`.
+For using watRtemp preprocessing and modelling functions, the necessary data should be available as a data frame. Example data frames are included in wateRtemp and can be called by `data("test_catchment")`.
 ```{r}
 # Provide the catchment data as a data frame
-data("Aschach")
+data("test_catchment")
 # it should look like this:
-summary(Aschach)
+summary(test_catchment)
 ```
 
 After loading the necessecery data, we can use the watRtemp preprocessing function to apply feature engineering and data splits. The preprocessed data will be saved in the Catchment folder automatically. 
 ```{r}
 # Preprocess the data
-wt_preprocess(Aschach)
+wt_preprocess(test_catchment)
 ```
 
 After preprocessing, the corresponding training and test datasets are stored in the catchment folder and can be loaded for using them in the models. 
 ```{r}
 # Preprocess the data
-train_data <- feather::read_feather("Aschach/train_data.feather")
-test_data <- feather::read_feather("Aschach/test_data.feather")
+train_data <- feather::read_feather("test_catchment/train_data.feather")
+test_data <- feather::read_feather("test_catchment/test_data.feather")
 ```
 
 Now we are ready to apply our machine learning models. For this example we run the most simple model available in wateRtemp: a multiple regression model using the function wt_lm(). 
 ```{r model_run, warning=FALSE}
-wt_lm(train_data, test_data, "Aschach", "LM", "repCV", "standard_LM")
+wt_lm(train_data, test_data, "test_catchment", "LM", "repCV", "standard_LM")
 ```
 Similar to multiple regression, we can easily apply other type of machine learning models on the preprocessed data. All models in include Bayesian hyperparemeter optimization and automatical storing of results and trained models.
 
-* `wt_lm(type = "stepLM"`) for step-wise linear regression,
+* `wt_lm(type = "stepLM")` for step-wise linear regression,
 
-* `wt_randomforest` for random forests,
+* `wt_randomforest()` for random forests,
 
-* `wt_xgboost` for XGBoost (Extreme Gradient Boosting),
+* `wt_xgboost()` for XGBoost (Extreme Gradient Boosting),
 
-* `wt_ann` for feed forward neural networks,
+* `wt_ann()` for feed forward neural networks,
 
-* `wt_rnn` for recurrent neural networks: LSTMs and GRUs
+* `wt_rnn()` for recurrent neural networks: LSTMs and GRUs
 

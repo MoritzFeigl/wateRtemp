@@ -64,11 +64,11 @@ Recurrent neural network implementation for stream water temperature prediction 
 }
 \examples{
 \dontrun{
-data(Aschach)
-wt_preprocess(Aschach)
-train_data <- feather::read_feather("Aschach/train_data.feather")
-test_data <- feather::read_feather("Aschach/test_data.feather")
+data(test_catchment)
+wt_preprocess(test_catchment)
+train_data <- feather::read_feather("test_catchment/train_data.feather")
+test_data <- feather::read_feather("test_catchment/test_data.feather")
 
-wt_rnn(train_data, test_data, "GRU", "Aschach", "standard_rnn_gru")
+wt_rnn(train_data, test_data, "GRU", "test_catchment", "standard_rnn_gru")
 }
 }

@@ -1,0 +1,2 @@
+"start_time","run_time","catchment","model","model_type","model_name","cv_mode","train_RMSE","train_MAE","cv_or_validation_RMSE","cv_or_validation_MAE","test_RMSE","test_MAE"
+"2020-12-19 09:55:12","0 minutes","test_catchment","LM","LM","standard_LM","None",0.61,0.484,NA,NA,0.718,0.564

@@ -58,11 +58,11 @@ Feedforward neural network implementation for stream water temperature predictio
 }
 \examples{
 \dontrun{
-data(Aschach)
-wt_preprocess(Aschach)
-train_data <- feather::read_feather("Aschach/train_data.feather")
-test_data <- feather::read_feather("Aschach/test_data.feather")
+data(test_catchment)
+wt_preprocess(test_catchment)
+train_data <- feather::read_feather("test_catchment/train_data.feather")
+test_data <- feather::read_feather("test_catchment/test_data.feather")
 
-wt_fnn(train_data, test_data, "Aschach", "standard_FNN")
+wt_fnn(train_data, test_data, "test_catchment", "standard_FNN")
 }
 }

@@ -34,11 +34,11 @@ Randomforest implementation for stream water temperature prediction including Ba
 }
 \examples{
 \dontrun{
-data(Aschach)
-wt_preprocess(Aschach)
-train_data <- feather::read_feather("Aschach/train_data.feather")
-test_data <- feather::read_feather("Aschach/test_data.feather")
+data(test_catchment)
+wt_preprocess(test_catchment)
+train_data <- feather::read_feather("test_catchment/train_data.feather")
+test_data <- feather::read_feather("test_catchment/test_data.feather")
 
-wt_randomforest(train_data, test_data, "Aschach", "repCV", "standard_rf")
+wt_randomforest(train_data, test_data, "test_catchment", "repCV", "standard_rf")
 }
 }
