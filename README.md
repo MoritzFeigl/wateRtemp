@@ -12,7 +12,7 @@ prediction.
 
 # Overview
 
-watRtemp includes 7 machine learning models with already implemented
+watRtemp includes 6 machine learning models with already implemented
 bayesian hyperparameter optimization. The main functions are:
 
   - `wt_preprocessing()` for preprocessing data for the machine learning
@@ -28,7 +28,7 @@ bayesian hyperparameter optimization. The main functions are:
 
   - `wt_rnn()` for recurrent neural networks: LSTMs and GRUs
 
-Additionally, prepared a synthetic data sets of for testin wateRtemp
+Additionally, a prepared synthetic data set for testing wateRtemp
 functionalities is included and can be used by running:
 
 ``` r
