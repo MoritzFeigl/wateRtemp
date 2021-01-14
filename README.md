@@ -1,4 +1,8 @@
 
+
+[![DOI](https://zenodo.org/badge/186992552.svg)](https://zenodo.org/badge/latestdoi/186992552)
+
+
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
 # wateRtemp
