@@ -1,11 +1,9 @@
 
-<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+[![DOI](https://zenodo.org/badge/186992552.svg)](https://zenodo.org/badge/latestdoi/186992552)
+
 
 # wateRtemp
-
-<!-- badges: start -->
-
-<!-- badges: end -->
 
 A machine learning toolbox for daily mean river water temperature
 prediction.
