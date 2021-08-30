@@ -28,3 +28,5 @@ Imports:
     e1071,
     magrittr
 RoxygenNote: 7.1.1
+URL: https://github.com/MoritzFeigl/wateRtemp
+BugReports: https://github.com/MoritzFeigl/wateRtemp/issues
