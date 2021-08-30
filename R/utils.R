@@ -1,3 +1,7 @@
+#' @importFrom magrittr %>%
+#' @importFrom stats predict sd
+#' @importFrom ggplot2 aes coord_flip geom_bar ggplot ggsave ggtitle scale_fill_gradient theme xlab ylab
+
 # function to check model inuts
 general_checks <- function(catchment,
                            train_data,
@@ -145,13 +149,13 @@ model_diagnostic <- function(train_prediction, train_data,
                              stringsAsFactors = FALSE)
 
   if("model_scores.csv" %in% list.files(paste0(catchment, "/", model_short))){
-    model_scores_old <- read.csv(paste0(catchment, "/", model_short, "/model_scores.csv"),
+    model_scores_old <- utils::read.csv(paste0(catchment, "/", model_short, "/model_scores.csv"),
                                  stringsAsFactors = FALSE)
-    write.csv(rbind(model_scores_old, model_scores, stringsAsFactors = FALSE),
+    utils::write.csv(rbind(model_scores_old, model_scores, stringsAsFactors = FALSE),
               paste0(catchment, "/", model_short, "/model_scores.csv"),
               row.names = FALSE)
   } else {
-    write.csv(model_scores,
+    utils::write.csv(model_scores,
               paste0(catchment, "/", model_short, "/model_scores.csv"),
               row.names = FALSE)
   }
@@ -186,7 +190,7 @@ save_prediction_results <- function(catchment = catchment, prediction, data, na_
       paste0(catchment, "/", model_short, "/", type_path, model_name, "/",
              data_name, "_prediction.csv"),
       "\n")
-  write.csv(results,
+  utils::write.csv(results,
             paste0(catchment, "/", model_short, "/", type_path, model_name, "/",
                    data_name, "_prediction.csv"), row.names = FALSE)
 }
@@ -296,7 +300,8 @@ y_reshaper <- function(y, n_timesteps, n_predictions){
   return(y_arr)
 }
 
-save_variable_importance <- function(model, model_short, model_name){
+save_variable_importance <- function(model, model_short, model_name,
+                                     catchment = catchment){
   cat("\nSaving variable importance plot in",
       paste0(catchment, "/", model_short, "/", model_name, "/"),"\n")
   importance <- caret::varImp(model)$importance
@@ -308,8 +313,8 @@ save_variable_importance <- function(model, model_short, model_name){
     ylab("Variable Importance") +
     xlab("") +
     ggtitle("Information Value Summary - Random Forest") +
-    theme(legend.position="none") +
-    scale_fill_gradient(low="red", high="blue") +
+    theme(legend.position = "none") +
+    scale_fill_gradient(low = "red", high = "blue") +
     ggsave(paste0(catchment, "/", model_short, "/", model_name,
                   "/importance_plot.png"), dpi = "retina")
 }
@@ -364,7 +369,7 @@ create_model <- function(nn_type, x_train, layers, units, dropout, seed, type = 
     tensorflow::tf$random$set_seed(seed)
     model <- keras::keras_model(input, output)
     # compile
-    model %>% compile(
+    model %>% keras::compile(
       loss = "mse",
       optimizer = "adam"
     )
@@ -396,7 +401,7 @@ create_model <- function(nn_type, x_train, layers, units, dropout, seed, type = 
     }
     output <- output %>% keras::layer_dense(1)
     model <- keras::keras_model(input, output) %>%
-      compile(loss = "mse",
+      keras::compile(loss = "mse",
               optimizer = "adam")
   }
   return(model)

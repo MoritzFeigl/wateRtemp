@@ -52,8 +52,8 @@ wt_xgboost <- function(train_data,
   na_train <- which(is.na(train_data), arr.ind = TRUE)
   if(nrow(na_train) > 0) train_data <- train_data[-unique(na_train[,1]),]
   if(!is.null(test_data)) {
-  na_test <- which(is.na(test_data), arr.ind = TRUE)
-  if(nrow(na_test) > 0) test_data <- test_data[-na_test[,1],]
+    na_test <- which(is.na(test_data), arr.ind = TRUE)
+    if(nrow(na_test) > 0) test_data <- test_data[-na_test[,1],]
   }
   # random seed
   if(is.null(seed)) seed <- sample(1000:100000, 1)
@@ -124,10 +124,10 @@ wt_xgboost <- function(train_data,
   parallel::stopCluster(cl)
   hyperpar_opt_scores <- model$results[, c(names(initial_grid), "RMSE", "MAE")]
 
-  write.csv(hyperpar_opt_scores,
-            file = paste0(catchment, "/", model_short, "/",
-                          model_name, "/hyperpar_opt_scores.csv"),
-            row.names = FALSE)
+  utils::write.csv(hyperpar_opt_scores,
+                   file = paste0(catchment, "/", model_short, "/",
+                                 model_name, "/hyperpar_opt_scores.csv"),
+                   row.names = FALSE)
   initial_grid <- hyperpar_opt_scores[, 1:7]
   initial_grid$Value <- hyperpar_opt_scores$RMSE * -1
 
@@ -151,14 +151,14 @@ wt_xgboost <- function(train_data,
                           tuneGrid = tune_grid)
     parallel::stopCluster(cl)
     # save results of given hyperparameter set
-    hyperpar_opt_scores <- read.csv(paste0(catchment, "/", model_short, "/",
-                                           model_name, "/hyperpar_opt_scores.csv"))
+    hyperpar_opt_scores <- utils::read.csv(paste0(catchment, "/", model_short, "/",
+                                                  model_name, "/hyperpar_opt_scores.csv"))
     hyperpar_opt_scores <- rbind(hyperpar_opt_scores,
                                  model$results[, names(hyperpar_opt_scores)])
-    write.csv(hyperpar_opt_scores,
-              file = paste0(catchment, "/", model_short, "/",
-                            model_name, "/hyperpar_opt_scores.csv"),
-              row.names = FALSE)
+    utils::write.csv(hyperpar_opt_scores,
+                     file = paste0(catchment, "/", model_short, "/",
+                                   model_name, "/hyperpar_opt_scores.csv"),
+                     row.names = FALSE)
     return(list(Score = -caret::getTrainPerf(model)[, "TrainRMSE"], Pred = 0))
   }
 
@@ -174,8 +174,8 @@ wt_xgboost <- function(train_data,
                                                               verbose = TRUE)
   initial_grid$Value <- NULL
   # update colnames of hyperpar_opt_scores
-  hyperpar_opt_scores <- read.csv(paste0(catchment, "/", model_short, "/",
-                                         model_name, "/hyperpar_opt_scores.csv"))
+  hyperpar_opt_scores <- utils::read.csv(paste0(catchment, "/", model_short, "/",
+                                                model_name, "/hyperpar_opt_scores.csv"))
   hyperpar_opt_scores[, c("RMSE", "MAE")] <- round(
     hyperpar_opt_scores[, c("RMSE", "MAE")], 3)
 
@@ -195,7 +195,7 @@ wt_xgboost <- function(train_data,
   cat("Running XGBoost with optimized hyperparameter set...")
   cl <- parallel::makePSOCKcluster(no_cores)
   doParallel::registerDoParallel(cl)
-  capture.output({
+  utils::capture.output({
     model <- caret::train(wt ~ .,
                           data = train_data,
                           method = "xgbTree",
@@ -217,19 +217,19 @@ wt_xgboost <- function(train_data,
   cat("\nHyperparameter optimization results are saved in",
       paste0("/",catchment, "/", model_short,
              "/", model_name, "/hyperpar_opt_scores.csv\n"))
-  write.csv(hyperpar_opt_scores,
-            paste0(catchment, "/", model_short,
-                   "/", model_name, "/hyperpar_opt_scores.csv"),
-            row.names = FALSE)
+  utils::write.csv(hyperpar_opt_scores,
+                   paste0(catchment, "/", model_short,
+                          "/", model_name, "/hyperpar_opt_scores.csv"),
+                   row.names = FALSE)
 
   cv_or_val_results <- model$results[which.min(model$results$RMSE), c("RMSE", "MAE")]
   # model prediction
-  suppressWarnings({train_prediction <- predict(model, train_data)})
-  save_prediction_results(catchment,train_prediction, train, na_train,
+  suppressWarnings({train_prediction <- stats::predict(model, train_data)})
+  save_prediction_results(catchment, train_prediction, train, na_train,
                           model_short, model_name, "train_data", type)
   if(!is.null(test_data)) {
-    suppressWarnings({test_prediction <- predict(model, test_data)})
-    save_prediction_results(catchment,test_prediction, test, na_test,
+    suppressWarnings({test_prediction <- stats::predict(model, test_data)})
+    save_prediction_results(catchment, test_prediction, test, na_test,
                             model_short, model_name, "test_data", type)
   }
   # model diagnostics

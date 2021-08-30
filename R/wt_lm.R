@@ -58,7 +58,7 @@ wt_lm <- function(train_data,
     cat("Applying multiple linear regression\n")
     # Train val split
     cv_mode <- "None"
-    model <- lm(wt ~ ., train_data)
+    model <- stats::lm(wt ~ ., train_data)
     cv_or_val_results <- data.frame("RMSE" = NA, "MAE" = NA)
 
   }
@@ -100,7 +100,7 @@ wt_lm <- function(train_data,
     non_interact_valiables <- names(train_data)[!(names(train_data) %in% interact_variables)]
     non_interact_valiables <- non_interact_valiables[non_interact_valiables != "wt" &
                                                     non_interact_valiables != "date"]
-    step_formular <- formula(paste0("wt ~ ",
+    step_formular <- stats::formula(paste0("wt ~ ",
                                     paste0(non_interact_valiables, collapse = "+"), "+(",
                                     paste0(interact_variables, collapse = "+"), ")^2"))
     cl <- parallel::makePSOCKcluster(no_cores)
@@ -114,11 +114,11 @@ wt_lm <- function(train_data,
   }
 
   # model prediction
-  suppressWarnings({train_prediction <- predict(model, train_data)})
+  suppressWarnings({train_prediction <- stats::predict(model, train_data)})
   save_prediction_results(catchment, train_prediction, train, na_train,
                           model_short, model_name, "train_data", type)
   if(!is.null(test_data)) {
-    suppressWarnings({test_prediction <- predict(model, test_data)})
+    suppressWarnings({test_prediction <- stats::predict(model, test_data)})
     save_prediction_results(catchment, test_prediction, test, na_test,
                             model_short, model_name, "test_data", type)
   }

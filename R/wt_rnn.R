@@ -31,6 +31,7 @@
 #'
 #' wt_rnn(train_data, test_data, "GRU", "test_catchment", "standard_rnn_gru")
 #'}
+
 wt_rnn <- function(train_data,
                    test_data = NULL,
                    type = "LSTM",
@@ -91,7 +92,7 @@ wt_rnn <- function(train_data,
   }
 
   # check if there are time gaps in the data -> split
-  capture.output({
+  utils::capture.output({
     full_train_split <- data_splitter_for_rnn(train_data,
                                               data_name = "train", catchment = catchment)
   })
@@ -104,22 +105,34 @@ wt_rnn <- function(train_data,
                                         catchment = catchment)
   }
   # split in x & y in
-  x_train <- lapply(train_split, function(x) x %>% select(-wt, -date) %>% as.matrix())
-  y_train <- lapply(train_split, function(x) x %>% select(wt) %>% as.matrix())
-  x_full_train <- lapply(full_train_split, function(x) x %>% select(-wt, -date) %>% as.matrix())
-  y_full_train <- lapply(full_train_split, function(x) x %>% select(wt) %>% as.matrix())
-  x_val <- lapply(val_split, function(x) x %>% select(-wt, -date) %>% as.matrix())
-  y_val <- lapply(val_split, function(x) x %>% select(wt) %>% as.matrix())
+  x_train <- lapply(train_split,
+                    function(x) x %>% dplyr::select(-"wt", -date) %>% as.matrix())
+  y_train <- lapply(train_split,
+                    function(x) x %>% dplyr::select("wt") %>% as.matrix())
+  x_full_train <- lapply(full_train_split,
+                         function(x) x %>% dplyr::select(-"wt", -date) %>% as.matrix())
+  y_full_train <- lapply(full_train_split,
+                         function(x) x %>% dplyr::select("wt") %>% as.matrix())
+  x_val <- lapply(val_split,
+                  function(x) x %>% dplyr::select(-"wt", -date) %>% as.matrix())
+  y_val <- lapply(val_split,
+                  function(x) x %>% dplyr::select("wt") %>% as.matrix())
   if(!is.null(test_data)){
-    x_test <- lapply(test_split, function(x) x %>% select(-wt, -date) %>% as.matrix())
-    y_test <- lapply(test_split, function(x) x %>% select(wt) %>% as.matrix())
+    x_test <- lapply(test_split,
+                     function(x) x %>% dplyr::select(-"wt", -date) %>% as.matrix())
+    y_test <- lapply(test_split,
+                     function(x) x %>% dplyr::select("wt") %>% as.matrix())
   } else {
     x_test <- y_test <- test <- NULL
   }
   cat("Mean and standard deviation used for feature scaling are saved under",
-      paste0(catchment, "/", model_short, "/", type, "/", model_name, "/scaling_values.csv\n"))
-  suppressWarnings(write.csv(rbind(train_means, train_sds),
-                             paste0(catchment, "/",model_short, "/", type, "/", model_name, "/scaling_values.csv")))
+      paste0(catchment, "/", model_short, "/", type, "/",
+             model_name, "/scaling_values.csv\n"))
+  suppressWarnings(
+    utils::write.csv(rbind(train_means, train_sds),
+              paste0(catchment, "/",model_short, "/", type, "/",
+                     model_name, "/scaling_values.csv"))
+  )
 
   # initial value for flag -> if additional initial_grid points should be calculated
   ini_grid_cal_flag <- FALSE
@@ -133,10 +146,11 @@ wt_rnn <- function(train_data,
   if(initial_grid_from_model_scores){
     # get initial grid for optimization from the previous calculated model_scores
     cat("Using existing scores as initial grid for the Bayesian Optimization\n")
-    hyperpar_opt_scores.csv <- read.csv(paste0(catchment, "/", model_short, "/", type, "/",
-                                               model_name, "/hyperpar_opt_scores.csv"),
-                                        stringsAsFactors = FALSE)
-    initial_grid <- hyperpar_opt_scores.csv[c("layers", "units", "dropout", "batch_size",
+    hyperpar_opt_scores_csv <- utils::read.csv(
+      paste0(catchment, "/", model_short, "/", type, "/",
+             model_name, "/hyperpar_opt_scores.csv"),
+      stringsAsFactors = FALSE)
+    initial_grid <- hyperpar_opt_scores_csv[c("layers", "units", "dropout", "batch_size",
                                               "timesteps", "cv_or_validation_RMSE")]
     if(nrow(initial_grid) < n_random_initial_points) ini_grid_cal_flag <- TRUE
 
@@ -262,10 +276,11 @@ wt_rnn <- function(train_data,
 
   # run best model as ensemble and save results
   cat("Run the best performing model as ensemble:\n")
+  . = NULL
   top_n_model_results <- all_model_results %>%
-    top_n(n = 1, wt = Value) %>%
-    mutate(dropout = round(dropout, 2)) %>%
-    select(-Value)
+    dplyr::top_n(n = 1, wt = "Value") %>%
+    dplyr::mutate("dropout" = round(., 2)) %>%
+    dplyr::select(-"Value")
   if(nrow(top_n_model_results) != 1) top_n_model_results <- top_n_model_results[1, ]
   set.seed(seed)
   wt_nn(

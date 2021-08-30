@@ -6,6 +6,8 @@
 \usage{
 wt_preprocess(
   data,
+  nlags = 4,
+  training_test_fractions = c(0.8, 0.2),
   year_range = c(min(data$year), max(data$year)),
   catchment = deparse(substitute(data))
 )
@@ -13,9 +15,13 @@ wt_preprocess(
 \arguments{
 \item{data}{data frame containing the variables: year, month, day, Q, P, Ta_min, Ta_max, Ta, wt, GL}
 
-\item{year_range}{vector containing the first and last year to use. Only relevant in case not all available years should be used.}
+\item{nlags}{Number of lags used for for all features except for time features.}
 
-\item{catchment}{character used to create the folder in which the resulting preprocessed training and test data sets get stored.}
+\item{training_test_fractions}{Numeric vector of fractions of data used for splitting the data in training and test data sets, e.g. c(0.8, 0.2)}
+
+\item{year_range}{Vector containing the first and last year to use. Only relevant in case not all available years should be used.}
+
+\item{catchment}{Character used to create the folder in which the resulting preprocessed training and test data sets get stored.}
 }
 \description{
 Preprocessing data for stream water temperature prediction. All results are stored automatically in the folder catchment in the current working directory.

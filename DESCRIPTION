@@ -1,7 +1,7 @@
 Package: wateRtemp
 Type: Package
 Title: Water temperature prediction modelling
-Version: 0.2.0
+Version: 0.3.0
 Author: Moritz Feigl
 Maintainer: Moritz Feigl <moritz.feigl@boku.ac.at>
 Description: Water temperature modelling with regression models, random forest, XGBoost and Neural networks.
@@ -25,5 +25,6 @@ Imports:
     tidyr,
     doParallel,
     utils,
-    e1071
+    e1071,
+    magrittr
 RoxygenNote: 7.1.1

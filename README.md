@@ -1,9 +1,10 @@
 
-
-[![DOI](https://zenodo.org/badge/186992552.svg)](https://zenodo.org/badge/latestdoi/186992552)
-
+<!-- README.md is generated from README.Rmd. Please edit that file -->
 
 # wateRtemp
+
+<!-- badges: start -->
+<!-- badges: end -->
 
 A machine learning toolbox for daily mean river water temperature
 prediction.
@@ -13,18 +14,18 @@ prediction.
 watRtemp includes 6 machine learning models with already implemented
 bayesian hyperparameter optimization. The main functions are:
 
-  - `wt_preprocessing()` for preprocessing data for the machine learning
+-   `wt_preprocessing()` for preprocessing data for the machine learning
     models,
 
-  - `wt_lm()` for muliple regression and step-wise linear regression,
+-   `wt_lm()` for muliple regression and step-wise linear regression,
 
-  - `wt_randomforest()` for random forests,
+-   `wt_randomforest()` for random forests,
 
-  - `wt_xgboost()` for XGBoost (Extreme Gradient Boosting),
+-   `wt_xgboost()` for XGBoost (Extreme Gradient Boosting),
 
-  - `wt_fnn()` for feedforward neural networks,
+-   `wt_fnn()` for feedforward neural networks,
 
-  - `wt_rnn()` for recurrent neural networks: LSTMs and GRUs
+-   `wt_rnn()` for recurrent neural networks: LSTMs and GRUs
 
 Additionally, a prepared synthetic data set for testing wateRtemp
 functionalities is included and can be used by running:
@@ -83,25 +84,26 @@ summary(test_catchment)
 #>                   NA's   :3566
 ```
 
-After loading the necessecery data, we can use the watRtemp
-preprocessing function to apply feature engineering and data splits. The
-preprocessed data will be saved in the Catchment folder automatically.
+After loading the necessary data, we can use the watRtemp preprocessing
+function to apply feature engineering and data splits. The preprocessed
+data will be saved in the Catchment folder automatically.
 
 ``` r
 # Preprocess the data
-wt_preprocess(test_catchment)
+wt_preprocess(test_catchment, nlags = 4, training_test_fractions = c(0.8, 0.2))
 #> *** Preprocessing data of catchment test_catchment ***
-#> Split data into 80% training/validation and 20% testing...
 #> Preprocessed data sets are stored in folder test_catchment :
 #> input_data.feather: full preprocessed data set in feather format
-#> train_data.feather: first 80% of the preprocessed data set in feather format
-#> test_data.feather: last 20% of the preprocessed data set in feather format
-#> 
+#> train_data.feather: first 80 % of the preprocessed data set in feather format
+#> test_data.feather: last 20 % of the preprocessed data set in feather format
+#> Registered S3 methods overwritten by 'tibble':
+#>   method     from  
+#>   format.tbl pillar
+#>   print.tbl  pillar
 #> Preparing 2nd dataset with radiation for the whole time series
-#> Split data into 80% training/validation and 20% testing...
 #> Preprocessed data sets are stored in folder test_catchment :
-#> train_radiation_data.feather: first 80% of the preprocessed data set in feather format
-#> test_radiation_data.feather: last 20% of the preprocessed data set in feather format
+#> train_radiation_data.feather: first 80 % of the preprocessed data set in feather format
+#> test_radiation_data.feather: last 20 % of the preprocessed data set in feather format
 ```
 
 After preprocessing, the corresponding training and test datasets are
@@ -134,15 +136,15 @@ wt_lm(train_data, test_data, "test_catchment", "LM", "repCV", "standard_LM")
 
 Similar to multiple regression, we can easily apply other type of
 machine learning models on the preprocessed data. All models in include
-Bayesian hyperparemeter optimization and automatical storing of results
-and trained models.
+Bayesian hyperparemeter optimization and automatically storing of
+results and trained models.
 
-  - `wt_lm(type = "stepLM")` for step-wise linear regression,
+-   `wt_lm(type = "stepLM")` for step-wise linear regression,
 
-  - `wt_randomforest()` for random forests,
+-   `wt_randomforest()` for random forests,
 
-  - `wt_xgboost()` for XGBoost (Extreme Gradient Boosting),
+-   `wt_xgboost()` for XGBoost (Extreme Gradient Boosting),
 
-  - `wt_ann()` for feed forward neural networks,
+-   `wt_ann()` for feed forward neural networks,
 
-  - `wt_rnn()` for recurrent neural networks: LSTMs and GRUs
+-   `wt_rnn()` for recurrent neural networks: LSTMs and GRUs

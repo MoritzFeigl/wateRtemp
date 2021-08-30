@@ -76,20 +76,20 @@ wt_fnn <- function(train_data,
   nn_val <- train_data[(train_length + 1):nrow(train_data), ]
   nn_train <- train_data[1:train_length, ]
   # define y and x
-  y_train <- nn_train %>% dplyr::pull(wt)
-  y_full_train <- train_data %>% dplyr::pull(wt)
-  y_val <- nn_val %>% dplyr::pull(wt)
-  if(!is.null(test_data)) y_test <- test_data %>% dplyr::pull(wt)
-  x_train <- nn_train %>% dplyr::select(-wt)
-  x_full_train <- train_data %>% dplyr::select(-wt)
-  x_val <- nn_val %>% dplyr::select(-wt)
-  if(!is.null(test_data)) x_test <- test_data %>% dplyr::select(-wt)
+  y_train <- nn_train %>% dplyr::pull("wt")
+  y_full_train <- train_data %>% dplyr::pull("wt")
+  y_val <- nn_val %>% dplyr::pull("wt")
+  if(!is.null(test_data)) y_test <- test_data %>% dplyr::pull("wt")
+  x_train <- nn_train %>% dplyr::select(-"wt")
+  x_full_train <- train_data %>% dplyr::select(-"wt")
+  x_val <- nn_val %>% dplyr::select(-"wt")
+  if(!is.null(test_data)) x_test <- test_data %>% dplyr::select(-"wt")
   # scale features with mean and sd from training data
   train_means <- apply(x_train, 2, mean)
   train_sd <- apply(x_train, 2, sd)
   cat("Mean and standard deviation used for feature scaling are saved under",
       paste0(catchment, "/", model_short, "/", model_name, "/scaling_values.csv\n"))
-  write.csv(rbind(train_means, train_sd),
+  utils::write.csv(rbind(train_means, train_sd),
             paste0(catchment, "/", model_short, "/", model_name, "/scaling_values.csv"))
   # apply it on all data sets
   for (i in 1:ncol(x_train)){
@@ -119,10 +119,10 @@ wt_fnn <- function(train_data,
   if(initial_grid_from_model_scores){
     # get initial grid for optimization from the previous calculated model_scores
     cat("Using existing scores as initial grid for the Bayesian Optimization\n")
-    hyperpar_opt_scores.csv <- read.csv(paste0(catchment, "/", model_short, "/",
+    hyperpar_opt_scores_csv <- utils::read.csv(paste0(catchment, "/", model_short, "/",
                                                model_name, "/hyperpar_opt_scores.csv"),
                                         stringsAsFactors = FALSE)
-    initial_grid <- hyperpar_opt_scores.csv[c("layers", "units", "dropout",
+    initial_grid <- hyperpar_opt_scores_csv[c("layers", "units", "dropout",
                                               "batch_size", "cv_or_validation_RMSE")]
     if(nrow(initial_grid) < n_random_initial_points) ini_grid_cal_flag <- TRUE
 
@@ -235,10 +235,11 @@ wt_fnn <- function(train_data,
 
   # run best model as ensemble and save results
   cat("Run the best performing model as ensemble:\n")
+  . = NULL
   top_n_model_results <- all_model_results %>%
-    top_n(n = 1, wt = Value) %>%
-    mutate(dropout = round(dropout, 2)) %>%
-    select(-Value)
+    dplyr::top_n(n = 1, wt = "Value") %>%
+    dplyr::mutate("dropout" = round(., 2)) %>%
+    dplyr::select(-"Value")
   if(nrow(top_n_model_results) != 1) top_n_model_results <- top_n_model_results[1, ]
   set.seed(seed)
   wt_nn(

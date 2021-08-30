@@ -86,7 +86,7 @@ wt_nn <- function(catchment, x_train, x_val, x_test = NULL, x_full_train = NULL,
   }
 
   # Ensemble runs
-    set.seed(seed)
+  set.seed(seed)
   for(run in 1:ensemble_runs){
     # define model object depending on nn_type and type
     if(nn_type == "FNN"){
@@ -98,36 +98,37 @@ wt_nn <- function(catchment, x_train, x_val, x_test = NULL, x_full_train = NULL,
     }
     # training
     tensorflow::tf$random$set_seed((seed + run))
-    history <- model %>% fit(
+    history <- model %>% keras::fit(
       x_train, y_train,
       epochs = epochs,
       batch_size = batch_size,
       callbacks = list(
-        callback_early_stopping(patience = early_stopping_patience,
-                                restore_best_weights = TRUE)),
+        keras::callback_early_stopping(patience = early_stopping_patience,
+                                       restore_best_weights = TRUE)),
       validation_data = list(x_val, y_val),
       verbose = 0)
     # store prediction results in lists
     if(run == 1){
-      predict_val <- list(predict(model, x_val))
+      predict_val <- list(stats::predict(model, x_val))
       if(save_model_and_prediction){
-        predict_full_train <- list(predict(model, x_full_train))
-        if(!is.null(x_test)) predict_test <- list(predict(model, x_test))
+        predict_full_train <- list(stats::predict(model, x_full_train))
+        if(!is.null(x_test)) predict_test <- list(stats::predict(model, x_test))
       }
     } else {
-      predict_val[[run]] <- predict(model, x_val)
+      predict_val[[run]] <- stats::predict(model, x_val)
       if(save_model_and_prediction){
-        predict_full_train[[run]] <- predict(model, x_full_train)
-        if(!is.null(x_test)) predict_test[[run]] <- predict(model, x_test)
+        predict_full_train[[run]] <- stats::predict(model, x_full_train)
+        if(!is.null(x_test)) predict_test[[run]] <- stats::predict(model, x_test)
       }
     }
     # save model as rds
     if(save_model_and_prediction){
-      model %>% save_model_hdf5(paste0(catchment, "/", model_short_type_path, "/",
-                                       model_name, "/model", run, ".h5"))
+      model %>% keras::save_model_hdf5(paste0(catchment, "/", model_short_type_path, "/",
+                                              model_name, "/model", run, ".h5"))
     }
   }
   # get mean prediction
+  . = NULL
   if(ensemble_runs != 1){
     # reshape list to length = 1 with mean predictions
     mean_pred_results_val <- predict_val %>%
@@ -196,15 +197,16 @@ wt_nn <- function(catchment, x_train, x_val, x_test = NULL, x_full_train = NULL,
   }
 
   # either combine with old results or write new
-  if("hyperpar_opt_scores.csv" %in% list.files(paste0(catchment, "/",
-                                                      model_short_type_path, "/", model_name))){
-    existing_model_scores <- read.csv(paste0(catchment, "/", model_short_type_path, "/",
-                                             model_name, "/hyperpar_opt_scores.csv"))
-    write.csv(rbind(existing_model_scores,model_scores),
+  if("hyperpar_opt_scores.csv" %in% list.files(
+    paste0(catchment, "/",model_short_type_path, "/", model_name))){
+    existing_model_scores <- utils::read.csv(
+      paste0(catchment, "/", model_short_type_path,
+             "/",model_name, "/hyperpar_opt_scores.csv"))
+    utils::write.csv(rbind(existing_model_scores,model_scores),
               paste0(catchment, "/", model_short_type_path, "/", model_name,
                      "/", "hyperpar_opt_scores.csv"), row.names = FALSE)
   } else {
-    write.csv(model_scores,
+    utils::write.csv(model_scores,
               paste0(catchment, "/", model_short_type_path, "/", model_name,
                      "/", "hyperpar_opt_scores.csv"), row.names = FALSE)
   }
@@ -212,21 +214,24 @@ wt_nn <- function(catchment, x_train, x_val, x_test = NULL, x_full_train = NULL,
   if(save_model_and_prediction){
     if(nn_type == "RNN"){
       # training prediction
-      if(sum(full_train_long_ts) > 1) full_train_split <- full_train_split[full_train_long_ts]
+      if(sum(full_train_long_ts) > 1) {
+        full_train_split <- full_train_split[full_train_long_ts]
+      }
       full_train_prediction_full <- full_train_split %>%
         lapply(function(x) x[-c(1:timesteps), ]) %>%
         do.call(rbind, .) %>%
-        select(date) %>%
-        slice(1:(n()-1+1)) %>%
-        pull(date) %>%
+        dplyr::select(date) %>%
+        dplyr::slice(1:(dplyr::n()-1+1)) %>%
+        dplyr::pull(date) %>%
         as.POSIXct() %>%
         data.frame(date = .,
-                   predicted_wt = mean_pred_results_full_train[, 1], stringsAsFactors = FALSE) %>%
+                   predicted_wt = mean_pred_results_full_train[, 1],
+                   stringsAsFactors = FALSE) %>%
         merge(train, ., by = "date", all.x = TRUE)
       cat("Saving prediction for test_data in",
           paste0(catchment, "/", model_short_type_path, "/", model_name, "/",
                  "train_data_prediction.csv"),"\n")
-      write.csv(full_train_prediction_full,
+      utils::write.csv(full_train_prediction_full,
                 paste0(catchment, "/", model_short_type_path, "/", model_name, "/",
                        "train_data_prediction.csv"), row.names = FALSE)
       # test prediction
@@ -234,17 +239,18 @@ wt_nn <- function(catchment, x_train, x_val, x_test = NULL, x_full_train = NULL,
       test_prediction_full <- test_split %>%
         lapply(function(x) x[-c(1:timesteps), ]) %>%
         do.call(rbind, .) %>%
-        select(date) %>%
-        slice(1:(n()-1+1)) %>%
-        pull(date) %>%
+        dplyr::select(date) %>%
+        dplyr::slice(1:(dplyr::n()-1+1)) %>%
+        dplyr::pull(date) %>%
         as.POSIXct() %>%
         data.frame(date = .,
-                   predicted_wt = mean_pred_results_test[, 1], stringsAsFactors = FALSE) %>%
+                   predicted_wt = mean_pred_results_test[, 1],
+                   stringsAsFactors = FALSE) %>%
         merge(test, ., by = "date", all.x = TRUE)
       cat("Saving prediction for test_data in",
           paste0(catchment, "/", model_short_type_path, "/", model_name, "/",
                  "test_data_prediction.csv"),"\n")
-      write.csv(test_prediction_full,
+      utils::write.csv(test_prediction_full,
                 paste0(catchment, "/", model_short_type_path, "/", model_name, "/",
                        "test_data_prediction.csv"), row.names = FALSE)
       model <- NULL
@@ -252,12 +258,11 @@ wt_nn <- function(catchment, x_train, x_val, x_test = NULL, x_full_train = NULL,
     if(nn_type == "FNN"){
       save_prediction_results(mean_pred_results_full_train, train, na_train,
                               model_short, model_name, "train_data", type)
-      save_prediction_results(mean_pred_results_test, test, na_test, model_short, model_name,
-                              "test_data", type = type)
+      save_prediction_results(mean_pred_results_test, test, na_test,
+                              model_short, model_name, "test_data", type = type)
     }
 
     # write model diagnostics
-
     cv_or_val_results <- data.frame("RMSE" = RMSE_val, "MAE" = MAE_val)
     model_diagnostic(train_prediction = mean_pred_results_full_train,
                      train_data = data.frame(wt = y_full_train),

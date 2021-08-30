@@ -95,7 +95,7 @@ wt_randomforest <- function(train_data,
   nul_out <- ifelse(Sys.info()["sysname"] == "Windows", "NUL", "/dev/null")
   cl <- parallel::makePSOCKcluster(no_cores)
   doParallel::registerDoParallel(cl)
-  capture.output({
+  utils::capture.output({
     model <- caret::train(wt ~ .,
                           data = train_data,
                           method = "ranger",
@@ -116,7 +116,7 @@ wt_randomforest <- function(train_data,
                                  search_grid2$mtry <= ncol(train_data)-1, ]
   cl <- parallel::makePSOCKcluster(no_cores)
   doParallel::registerDoParallel(cl)
-  capture.output({model <- caret::train(wt ~ .,
+  utils::capture.output({model <- caret::train(wt ~ .,
                                         data = train_data,
                                         method = "ranger",
                                         trControl = tc,
@@ -135,7 +135,7 @@ wt_randomforest <- function(train_data,
   cat("\nHyperparameter optimization results are saved in",
       paste0("/",catchment, "/", model_short,
              "/", model_name, "/hyperpar_opt_scores.csv\n"))
-  write.csv(hyperpar_opt_scores,
+  utils::write.csv(hyperpar_opt_scores,
             paste0(catchment, "/", model_short,
                    "/", model_name, "/hyperpar_opt_scores.csv"),
             row.names = FALSE)
@@ -145,12 +145,12 @@ wt_randomforest <- function(train_data,
   for(i in 1:ncol(model$bestTune)) cat(names(model$bestTune)[i], ": ",
                                        model$bestTune[1, as.integer(i)], "\n", sep = "")
   # model prediction
-  suppressWarnings({train_prediction <- predict(model, train_data)})
-  save_prediction_results(catchment,train_prediction, train, na_train,
+  suppressWarnings({train_prediction <- stats::predict(model, train_data)})
+  save_prediction_results(catchment, train_prediction, train, na_train,
                           model_short, model_name, "train_data", type)
   if(!is.null(test_data)) {
-    suppressWarnings({test_prediction <- predict(model, test_data)})
-    save_prediction_results(catchment,test_prediction, test, na_test,
+    suppressWarnings({test_prediction <- stats::predict(model, test_data)})
+    save_prediction_results(catchment, test_prediction, test, na_test,
                             model_short, model_name, "test_data", type)
   }
   # model diagnostics
