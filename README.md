@@ -1,23 +1,28 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# wateRtemp
+# wateRtemp - A toolbox for stream water temperature prediction
 
 <!-- badges: start -->
 
 [![DOI](https://zenodo.org/badge/186992552.svg)](https://zenodo.org/badge/latestdoi/186992552)
 [![R-CMD-check](https://github.com/MoritzFeigl/wateRtemp/workflows/R-CMD-check/badge.svg)](https://github.com/MoritzFeigl/wateRtemp/actions)
-<!-- badges: end --> A machine learning toolbox for daily mean river
-water temperature prediction.
+<!-- badges: end -->
 
-wateRtemp was used to produce all results of the publication
-[Machine-learning methods for stream water temperature prediction (Feigl
-et al., 2021)](https://doi.org/10.5194/hess-25-2951-2021), which also
-includes detailed descriptions of the applied methods.
+wateRtemp is a machine learning toolbox for mean daily stream water
+temperature prediction, which was used to produce all results of the
+publication [Machine-learning methods for stream water temperature
+prediction (Feigl et al.,
+2021)](https://doi.org/10.5194/hess-25-2951-2021). Please refer to this
+publication for detailed descriptions of the applied models and
+preprocessing steps.
 
 If you have any questions regarding or want to report issues with the
-code, pleas do not hesitate to create an issue under
-[wateRtemp/issues](https://github.com/MoritzFeigl/wateRtemp/issues)
+code, please do not hesitate to create an issue under
+[wateRtemp/issues](https://github.com/MoritzFeigl/wateRtemp/issues). I
+will update this library whenever new issues are posted.
+
+Last update: August 30, 2021
 
 # Overview
 
@@ -188,7 +193,7 @@ cite the following publication
     year = {2021}
     }
 
-## License of our code
+## License of the code
 
 [Apache License
 2.0](https://github.com/MoritzFeigl/wateRtemp/blob/master/LICENSE.md)
