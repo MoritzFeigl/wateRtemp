@@ -15,7 +15,10 @@ publication [Machine-learning methods for stream water temperature
 prediction (Feigl et al.,
 2021)](https://doi.org/10.5194/hess-25-2951-2021). Please refer to this
 publication for detailed descriptions of the applied models and
-preprocessing steps.
+preprocessing steps. The code used to create the figures and tables of
+this publication is available
+[here](github.com/MoritzFeigl/ML_methods_for_stream_water_temperature_prediction)
+and might be interesting for further analyzing wateRtemp results.
 
 If you have any questions regarding or want to report issues with the
 code, please do not hesitate to create an issue under

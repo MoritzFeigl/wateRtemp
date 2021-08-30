@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
 [![R-CMD-check](https://github.com/MoritzFeigl/wateRtemp/workflows/R-CMD-check/badge.svg)](https://github.com/MoritzFeigl/wateRtemp/actions)
 <!-- badges: end -->
 
-wateRtemp is a machine learning toolbox for mean daily stream water temperature prediction, which was used to produce all results of the publication [Machine-learning methods for stream water temperature prediction (Feigl et al., 2021)](https://doi.org/10.5194/hess-25-2951-2021). Please refer to this publication for detailed descriptions of the applied models and preprocessing steps. 
+wateRtemp is a machine learning toolbox for mean daily stream water temperature prediction, which was used to produce all results of the publication [Machine-learning methods for stream water temperature prediction (Feigl et al., 2021)](https://doi.org/10.5194/hess-25-2951-2021). Please refer to this publication for detailed descriptions of the applied models and preprocessing steps. The code used to create the figures and tables of this publication is available  [here](github.com/MoritzFeigl/ML_methods_for_stream_water_temperature_prediction) and might be interesting for further analyzing wateRtemp results. 
 
 If you have any questions regarding or want to report issues with the code, please do not hesitate to create an issue under [wateRtemp/issues](https://github.com/MoritzFeigl/wateRtemp/issues). I will update this library whenever new issues are posted.
 
