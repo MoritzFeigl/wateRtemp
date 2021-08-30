@@ -123,8 +123,8 @@ wt_nn <- function(catchment, x_train, x_val, x_test = NULL, x_full_train = NULL,
     }
     # save model as rds
     if(save_model_and_prediction){
-      saveRDS(model, paste0(catchment, "/", model_short_type_path, "/",
-                            model_name, "/model", run, ".rds"))
+      model %>% save_model_hdf5(paste0(catchment, "/", model_short_type_path, "/",
+                                       model_name, "/model", run, ".h5"))
     }
   }
   # get mean prediction

@@ -24,5 +24,6 @@ Imports:
     dplyr,
     tidyr,
     doParallel,
-    utils
+    utils,
+    e1071
 RoxygenNote: 7.1.1

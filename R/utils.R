@@ -308,24 +308,23 @@ save_variable_importance <- function(model, model_short, model_name){
     ylab("Variable Importance") +
     xlab("") +
     ggtitle("Information Value Summary - Random Forest") +
-    guides(fill = FALSE) +
+    theme(legend.position="none") +
     scale_fill_gradient(low="red", high="blue") +
     ggsave(paste0(catchment, "/", model_short, "/", model_name,
                   "/importance_plot.png"), dpi = "retina")
 }
 
 # create lags function
-create_lags <- function(data, variable){
-  lags <- data.frame("lag1" = c(NA, data[-nrow(data), variable]))
-  lags$lag2 <- c(NA, lags$lag1[-nrow(data)])
-  lags$lag3 <- c(NA, lags$lag2[-nrow(data)])
-  lags$lag4 <- c(NA, lags$lag3[-nrow(data)])
-  names(lags) <- paste0(variable, "_lag", 1:4)
+create_lags <- function(data, variable, nlags){
+  lags <- data.frame("lag1" = c(NA, data[-nrow(data),variable]))
+  if(nlags > 1){
+    for(i in 1:(nlags-1)){
+      lags[, i+1] <- c(NA, lags[-nrow(data), i])
+    }
+  }
+  names(lags) <- paste0(variable, "_lag", 1:nlags)
   return(cbind(data, lags))
 }
-
-
-
 
 # define model
 create_model <- function(nn_type, x_train, layers, units, dropout, seed, type = NULL,
@@ -348,7 +347,7 @@ create_model <- function(nn_type, x_train, layers, units, dropout, seed, type = 
                                activation = 'selu',
                                kernel_initializer = "lecun_normal")
         }
-      }
+      } else {
       # all other time steps
       if(dropout_layers){
         output <- output %>% keras::layer_alpha_dropout(rate = dropout)
@@ -358,6 +357,7 @@ create_model <- function(nn_type, x_train, layers, units, dropout, seed, type = 
         keras::layer_dense(units = units,
                            activation = 'selu',
                            kernel_initializer = "lecun_normal")
+      }
     }
     # add last layer
     output <- output %>% keras::layer_dense(1)

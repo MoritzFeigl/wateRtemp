@@ -101,7 +101,9 @@ wt_xgboost <- function(train_data,
   for(i in 1:length(parameter_bounds)){
     range <- parameter_bounds[[i]]
     if(is.integer(range)){
-      initial_grid[[i]] <- sample(range[1]:range[2], n_random_initial_points, replace = TRUE)
+      initial_grid[[i]] <- sample(range[1]:range[2],
+                                  n_random_initial_points,
+                                  replace = TRUE)
     } else {
       initial_grid[[i]] <- round(sample(seq(range[1], range[2], length.out = 10),
                                         n_random_initial_points, replace = TRUE), 3)
@@ -123,7 +125,8 @@ wt_xgboost <- function(train_data,
   hyperpar_opt_scores <- model$results[, c(names(initial_grid), "RMSE", "MAE")]
 
   write.csv(hyperpar_opt_scores,
-            file = paste0(catchment, "/", model_short, "/", model_name, "/hyperpar_opt_scores.csv"),
+            file = paste0(catchment, "/", model_short, "/",
+                          model_name, "/hyperpar_opt_scores.csv"),
             row.names = FALSE)
   initial_grid <- hyperpar_opt_scores[, 1:7]
   initial_grid$Value <- hyperpar_opt_scores$RMSE * -1
@@ -173,7 +176,8 @@ wt_xgboost <- function(train_data,
   # update colnames of hyperpar_opt_scores
   hyperpar_opt_scores <- read.csv(paste0(catchment, "/", model_short, "/",
                                          model_name, "/hyperpar_opt_scores.csv"))
-  hyperpar_opt_scores[, c("RMSE", "MAE")] <- round(hyperpar_opt_scores[, c("RMSE", "MAE")], 3)
+  hyperpar_opt_scores[, c("RMSE", "MAE")] <- round(
+    hyperpar_opt_scores[, c("RMSE", "MAE")], 3)
 
   # Optimized hyperparameters
   best_par <- data.frame(nrounds = Bopt_xgboost$History$nrounds,
@@ -184,7 +188,9 @@ wt_xgboost <- function(train_data,
                          subsample = Bopt_xgboost$History$subsample,
                          min_child_weight = Bopt_xgboost$History$min_child_weight)
   cat("Finished hyperparameter optimization, optimized parameters:\n")
-  for(i in 2:ncol(best_par)) cat(names(best_par)[i], ":", as.numeric(best_par[1, i]), "\n")
+  for(i in 2:ncol(best_par)) {
+    cat(names(best_par)[i], ":", as.numeric(best_par[1, i]), "\n")
+  }
   # Run model with optimized hyperparameters
   cat("Running XGBoost with optimized hyperparameter set...")
   cl <- parallel::makePSOCKcluster(no_cores)
@@ -204,8 +210,10 @@ wt_xgboost <- function(train_data,
   hyperpar_opt_scores2 <- model$results[, c(names(initial_grid), "RMSE", "MAE")]
   hyperpar_opt_scores <- rbind(hyperpar_opt_scores,
                                hyperpar_opt_scores2)
-  hyperpar_opt_scores[, c("RMSE", "MAE")] <- round(hyperpar_opt_scores[, c("RMSE", "MAE")], 3)
-  colnames(hyperpar_opt_scores) <- c(names(initial_grid), "cv_or_validation_RMSE", "cv_or_validation_MAE")
+  hyperpar_opt_scores[, c("RMSE", "MAE")] <- round(
+    hyperpar_opt_scores[, c("RMSE", "MAE")], 3)
+  colnames(hyperpar_opt_scores) <- c(names(initial_grid),
+                                     "cv_or_validation_RMSE", "cv_or_validation_MAE")
   cat("\nHyperparameter optimization results are saved in",
       paste0("/",catchment, "/", model_short,
              "/", model_name, "/hyperpar_opt_scores.csv\n"))
@@ -237,6 +245,8 @@ wt_xgboost <- function(train_data,
                    model_name = model_name,
                    model_short = model_short,
                    model = model)
-  # importasnce plot
-  save_variable_importance(model, model_short, model_name)
+  # importance plot
+  if(ncol(train_data)-1 > 1){
+    save_variable_importance(model, model_short, model_name)
+  }
 }

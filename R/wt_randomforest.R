@@ -84,7 +84,11 @@ wt_randomforest <- function(train_data,
 
   cat("Applying grid search for hyperparameter optimization\n")
   # search grid with every 2nd mtry
-  all_mtries <- 3:(ncol(train_data) - 1)
+  if(ncol(train_data)-1 < 4){
+    all_mtries <- 1:(ncol(train_data)-1)
+  } else {
+    all_mtries <- 3:(ncol(train_data)-1)
+  }
   search_grid <- expand.grid(mtry = all_mtries[all_mtries %% 2 == 1],
                              min.node.size = 2:10,
                              splitrule = "extratrees")
@@ -108,6 +112,8 @@ wt_randomforest <- function(train_data,
                              splitrule = "extratrees",
                              min.node.size = best_par$min.node.size,
                              stringsAsFactors = FALSE)
+  search_grid2 <- search_grid2[search_grid2$mtry > 0 &
+                                 search_grid2$mtry <= ncol(train_data)-1, ]
   cl <- parallel::makePSOCKcluster(no_cores)
   doParallel::registerDoParallel(cl)
   capture.output({model <- caret::train(wt ~ .,
@@ -124,7 +130,8 @@ wt_randomforest <- function(train_data,
   hyperpar_opt_scores <- rbind(hyperpar_opt_scores,
                                hyperpar_opt_scores2)
   hyperpar_opt_scores[, c("RMSE", "MAE")] <- round(hyperpar_opt_scores[, c("RMSE", "MAE")], 3)
-  colnames(hyperpar_opt_scores) <- c(names(search_grid), "cv_or_validation_RMSE", "cv_or_validation_MAE")
+  colnames(hyperpar_opt_scores) <- c(names(search_grid),
+                                     "cv_or_validation_RMSE", "cv_or_validation_MAE")
   cat("\nHyperparameter optimization results are saved in",
       paste0("/",catchment, "/", model_short,
              "/", model_name, "/hyperpar_opt_scores.csv\n"))
@@ -159,7 +166,8 @@ wt_randomforest <- function(train_data,
                    model_name = model_name,
                    model_short = model_short,
                    model = model)
-
-  save_variable_importance(model, model_short, model_name)
+  if(ncol(train_data)-1 > 1){
+    save_variable_importance(model, model_short, model_name)
+  }
 
 }

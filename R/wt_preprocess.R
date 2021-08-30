@@ -6,6 +6,7 @@
 #' @param data data frame containing the variables: year, month, day, Q, P, Ta_min, Ta_max, Ta, wt, GL
 #' @param year_range vector containing the first and last year to use. Only relevant in case not all available years should be used.
 #' @param catchment character used to create the folder in which the resulting preprocessed training and test data sets get stored.
+#' @param nlags Number of lags used for for all features except for time features.
 #'
 #' @export
 #'
@@ -18,7 +19,8 @@
 #'}
 wt_preprocess <- function(data,
                           year_range = c(min(data$year), max(data$year)),
-                          catchment = deparse(substitute(data))){
+                          catchment = deparse(substitute(data)),
+                          nlags = 4){
 
   if(data$year[1] > tail(data$year, 1)){
     stop(cat("Data needs to be orded from earliest date onwards.",
@@ -101,7 +103,7 @@ wt_preprocess <- function(data,
   # order needed variables
   variables <- names(data)[!(names(data) %in% c("date", "wt"))]
   variables <- variables[!grepl("Fmon", variables)]
-  for(variable in variables) data <- create_lags(data, variable)
+  for(variable in variables) data <- create_lags(data, variable, nlags)
 
   # Split: train_year_from to split_year; split_year+1 to last year of the data series
   # Split in 2/3 training and 1/3 validation
