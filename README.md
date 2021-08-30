@@ -7,15 +7,32 @@
 
 [![DOI](https://zenodo.org/badge/186992552.svg)](https://zenodo.org/badge/latestdoi/186992552)
 [![R-CMD-check](https://github.com/MoritzFeigl/wateRtemp/workflows/R-CMD-check/badge.svg)](https://github.com/MoritzFeigl/wateRtemp/actions)
-<!-- badges: end -->
+<!-- badges: end --> A machine learning toolbox for daily mean river
+water temperature prediction.
 
-A machine learning toolbox for daily mean river water temperature
-prediction.
+wateRtemp was used to produce all results of the publication
+[Machine-learning methods for stream water temperature prediction (Feigl
+et al., 2021)](https://doi.org/10.5194/hess-25-2951-2021), which also
+includes detailed descriptions of the applied methods.
+
+If you have any questions regarding or want to report issues with the
+code, pleas do not hesitate to create an issue under
+[wateRtemp/issues](https://github.com/MoritzFeigl/wateRtemp/issues)
 
 # Overview
 
-watRtemp includes 6 machine learning models with already implemented
-bayesian hyperparameter optimization. The main functions are:
+wateRtemp includes 6 machine learning models with bayesian
+hyperparameter optimization:
+
+-   Multiple and step-wise linear regression
+-   Random forest
+-   XGBoost (Extreme Gradient Boosting)
+-   Feedforward neural networks
+-   Recurrent neural networks:
+    -   Long short-term memory networks (LSTMs)
+    -   Gated recurrent units networks(GRUs)
+
+The main functions are:
 
 -   `wt_preprocessing()` for preprocessing data for the machine learning
     models,
@@ -59,51 +76,48 @@ included in wateRtemp and can be called by `data("test_catchment")`.
 ``` r
 # Provide the catchment data as a data frame
 data("test_catchment")
-# it should look like this:
-summary(test_catchment)
-#>       year          month             day              Q         
-#>  Min.   :1997   Min.   : 1.000   Min.   : 1.00   Min.   :  4.94  
-#>  1st Qu.:2001   1st Qu.: 4.000   1st Qu.: 8.00   1st Qu.: 28.65  
-#>  Median :2006   Median : 7.000   Median :16.00   Median : 47.00  
-#>  Mean   :2006   Mean   : 6.582   Mean   :15.73   Mean   : 59.26  
-#>  3rd Qu.:2011   3rd Qu.:10.000   3rd Qu.:23.00   3rd Qu.: 76.60  
-#>  Max.   :2015   Max.   :12.000   Max.   :31.00   Max.   :351.00  
-#>                                                                  
-#>        P              Ta_min           Ta_max              Ta          
-#>  Min.   : 0.000   Min.   :-26.84   Min.   :-20.450   Min.   :-23.5900  
-#>  1st Qu.: 0.000   1st Qu.: -9.09   1st Qu.: -1.575   1st Qu.: -5.2900  
-#>  Median : 0.140   Median : -3.46   Median :  4.710   Median :  0.6100  
-#>  Mean   : 2.558   Mean   : -4.15   Mean   :  4.391   Mean   :  0.1205  
-#>  3rd Qu.: 2.075   3rd Qu.:  1.50   3rd Qu.: 10.380   3rd Qu.:  5.8300  
-#>  Max.   :79.310   Max.   : 10.22   Max.   : 21.980   Max.   : 15.6700  
-#>                                                                        
-#>        wt               GL        
-#>  Min.   : 0.000   Min.   : 17.20  
-#>  1st Qu.: 2.714   1st Qu.: 74.48  
-#>  Median : 6.061   Median :145.49  
-#>  Mean   : 6.005   Mean   :152.84  
-#>  3rd Qu.: 9.046   3rd Qu.:221.68  
-#>  Max.   :13.645   Max.   :360.91  
-#>                   NA's   :3566
+```
+
+The provided data should be a data frame which includes the columns:
+
+-   `year`, `month`, `day`: The data given as three columns of integers.
+-   `wt`: The mean daily stream water temperature data as numeric.
+-   additional columns containing covariates, e.g. precipitation,
+    discharge, etc. The column names of these variables can be arbitrary
+    chosen and will not affect the wateRtemp functions.
+
+For example, the test catchment has following structure:
+
+``` r
+str(test_catchment)
+#> 'data.frame':    6851 obs. of  10 variables:
+#>  $ year  : int  1997 1997 1997 1997 1997 1997 1997 1997 1997 1997 ...
+#>  $ month : int  1 1 1 1 1 1 1 1 1 1 ...
+#>  $ day   : int  1 2 3 4 5 6 7 8 9 10 ...
+#>  $ Q     : num  14.3 51.3 56.8 27.6 12.1 41.4 62 64.6 58.3 49.5 ...
+#>  $ P     : num  3.88 5.96 4.16 1.71 0.06 3.19 0.66 0.11 0.51 0 ...
+#>  $ Ta_min: num  -14.67 -13.33 -6.71 -12.79 -14.84 ...
+#>  $ Ta_max: num  -5.57 -5.25 -2.29 -4.25 -7.11 -7.22 -5.44 -5.6 -6 -6.22 ...
+#>  $ Ta    : num  -10.12 -9.29 -4.5 -8.52 -10.98 ...
+#>  $ wt    : num  0.9 1.5 2.2 1.9 1.6 1.8 2.3 2.4 2.5 2.4 ...
+#>  $ GL    : num  NA NA NA NA NA NA NA NA NA NA ...
 ```
 
 After loading the necessary data, we can use the watRtemp preprocessing
 function to apply feature engineering and data splits. The preprocessed
-data will be saved in the Catchment folder automatically.
+data will be saved in the Catchment folder automatically. This function
+generates training and test data sets with the given fraction for the
+training data and automatically computes lagged version of all variables
+(except wt and time variables) with the given number of lags (nlags)
 
 ``` r
 # Preprocess the data
-wt_preprocess(test_catchment, nlags = 4, training_test_fractions = c(0.8, 0.2))
+wt_preprocess(test_catchment, nlags = 4, training_fraction = 0.8)
 #> *** Preprocessing data of catchment test_catchment ***
 #> Preprocessed data sets are stored in folder test_catchment :
 #> input_data.feather: full preprocessed data set in feather format
 #> train_data.feather: first 80 % of the preprocessed data set in feather format
 #> test_data.feather: last 20 % of the preprocessed data set in feather format
-#> 
-#> Preparing 2nd dataset with radiation for the whole time series
-#> Preprocessed data sets are stored in folder test_catchment :
-#> train_radiation_data.feather: first 80 % of the preprocessed data set in feather format
-#> test_radiation_data.feather: last 20 % of the preprocessed data set in feather format
 ```
 
 After preprocessing, the corresponding training and test datasets are
@@ -118,10 +132,17 @@ test_data <- feather::read_feather("test_catchment/test_data.feather")
 
 Now we are ready to apply our machine learning models. For this example
 we run the most simple model available in wateRtemp: a multiple
-regression model using the function wt\_lm().
+regression model using the function wt\_lm(). All results and
+hyperparameter optimization scores are stored in the `test_catchment`
+folder, which is automatically created in the current working directory.
 
 ``` r
-wt_lm(train_data, test_data, "test_catchment", "LM", "repCV", "standard_LM")
+wt_lm(train_data = train_data, 
+      test_data = test_data, 
+      catchment = "test_catchment", 
+      type = "LM", 
+      cv_mode = "repCV", 
+      model_name = "standard_LM")
 #> *** Starting LM computation for catchment test_catchment ***
 #> Applying multiple linear regression
 #> Saving prediction for train_data in test_catchment/LM/LM/standard_LM/train_data_prediction.csv 
@@ -148,3 +169,26 @@ results and trained models.
 -   `wt_ann()` for feed forward neural networks,
 
 -   `wt_rnn()` for recurrent neural networks: LSTMs and GRUs
+
+## Citation
+
+If you use any of this code in your experiments, please make sure to
+cite the following publication
+
+    @article{Feigl2021,
+    author = {Feigl, Moritz and Lebiedzinski, Katharina and Herrnegger, Mathew and Schulz, Karsten},
+    doi = {10.5194/HESS-25-2951-2021},
+    journal = {Hydrology and Earth System Sciences},
+    month = {may},
+    number = {5},
+    pages = {2951--2977},
+    publisher = {Copernicus GmbH},
+    title = {{Machine-learning methods for stream water temperature prediction}},
+    volume = {25},
+    year = {2021}
+    }
+
+## License of our code
+
+[Apache License
+2.0](https://github.com/MoritzFeigl/wateRtemp/blob/master/LICENSE.md)

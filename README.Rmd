@@ -19,11 +19,25 @@ knitr::opts_chunk$set(
 [![DOI](https://zenodo.org/badge/186992552.svg)](https://zenodo.org/badge/latestdoi/186992552)
 [![R-CMD-check](https://github.com/MoritzFeigl/wateRtemp/workflows/R-CMD-check/badge.svg)](https://github.com/MoritzFeigl/wateRtemp/actions)
 <!-- badges: end -->
+A machine learning toolbox for daily mean river water temperature prediction. 
 
-A machine learning toolbox for daily mean river water temperature prediction.
+wateRtemp was used to produce all results of the publication [Machine-learning methods for stream water temperature prediction (Feigl et al., 2021)](https://doi.org/10.5194/hess-25-2951-2021), which also includes detailed descriptions of the applied methods.
+
+If you have any questions regarding or want to report issues with the code, pleas do not hesitate to create an issue under [wateRtemp/issues](https://github.com/MoritzFeigl/wateRtemp/issues)
 
 # Overview
-watRtemp includes 6 machine learning models with already implemented bayesian hyperparameter optimization. The main functions are:
+wateRtemp includes 6 machine learning models with bayesian hyperparameter optimization:
+
+- Multiple and step-wise linear regression
+- Random forest
+- XGBoost (Extreme Gradient Boosting)
+- Feedforward neural networks
+- Recurrent neural networks: 
+  - Long short-term memory networks (LSTMs)
+  - Gated recurrent units networks(GRUs)
+
+
+The main functions are:
 
 * `wt_preprocessing()` for preprocessing data for the machine learning models,
 
@@ -61,14 +75,23 @@ For using watRtemp preprocessing and modelling functions, the necessary data sho
 ```{r}
 # Provide the catchment data as a data frame
 data("test_catchment")
-# it should look like this:
-summary(test_catchment)
 ```
 
-After loading the necessary data, we can use the watRtemp preprocessing function to apply feature engineering and data splits. The preprocessed data will be saved in the Catchment folder automatically. 
+The provided data should be a data frame which includes the columns: 
+
+- `year`, `month`, `day`: The data given as three columns of integers.
+- `wt`: The mean daily stream water temperature data as numeric. 
+- additional columns containing covariates, e.g. precipitation, discharge, etc. The column names of these variables can be arbitrary chosen and will not affect the wateRtemp functions.
+
+For example, the test catchment has following structure:
+```{r}
+str(test_catchment)
+```
+
+After loading the necessary data, we can use the watRtemp preprocessing function to apply feature engineering and data splits. The preprocessed data will be saved in the Catchment folder automatically. This function generates training and test data sets with the given fraction for the training data and automatically computes lagged version of all variables (except wt and time variables) with the given number of lags (nlags)
 ```{r}
 # Preprocess the data
-wt_preprocess(test_catchment, nlags = 4, training_test_fractions = c(0.8, 0.2))
+wt_preprocess(test_catchment, nlags = 4, training_fraction = 0.8)
 ```
 
 After preprocessing, the corresponding training and test datasets are stored in the catchment folder and can be loaded for using them in the models. 
@@ -78,10 +101,16 @@ train_data <- feather::read_feather("test_catchment/train_data.feather")
 test_data <- feather::read_feather("test_catchment/test_data.feather")
 ```
 
-Now we are ready to apply our machine learning models. For this example we run the most simple model available in wateRtemp: a multiple regression model using the function wt_lm(). 
+Now we are ready to apply our machine learning models. For this example we run the most simple model available in wateRtemp: a multiple regression model using the function wt_lm(). All results and hyperparameter optimization scores are stored in the `test_catchment` folder, which is automatically created in the current working directory.
 ```{r model_run, warning=FALSE}
-wt_lm(train_data, test_data, "test_catchment", "LM", "repCV", "standard_LM")
+wt_lm(train_data = train_data, 
+      test_data = test_data, 
+      catchment = "test_catchment", 
+      type = "LM", 
+      cv_mode = "repCV", 
+      model_name = "standard_LM")
 ```
+
 Similar to multiple regression, we can easily apply other type of machine learning models on the preprocessed data. All models in include Bayesian hyperparemeter optimization and automatically storing of results and trained models.
 
 * `wt_lm(type = "stepLM")` for step-wise linear regression,
@@ -94,3 +123,23 @@ Similar to multiple regression, we can easily apply other type of machine learni
 
 * `wt_rnn()` for recurrent neural networks: LSTMs and GRUs
 
+## Citation
+
+If you use any of this code in your experiments, please make sure to cite the following publication
+```
+@article{Feigl2021,
+author = {Feigl, Moritz and Lebiedzinski, Katharina and Herrnegger, Mathew and Schulz, Karsten},
+doi = {10.5194/HESS-25-2951-2021},
+journal = {Hydrology and Earth System Sciences},
+month = {may},
+number = {5},
+pages = {2951--2977},
+publisher = {Copernicus GmbH},
+title = {{Machine-learning methods for stream water temperature prediction}},
+volume = {25},
+year = {2021}
+}
+```
+
+## License of our code
+[Apache License 2.0](https://github.com/MoritzFeigl/wateRtemp/blob/master/LICENSE.md)

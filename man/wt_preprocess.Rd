@@ -7,17 +7,17 @@
 wt_preprocess(
   data,
   nlags = 4,
-  training_test_fractions = c(0.8, 0.2),
+  training_fraction = 0.8,
   year_range = c(min(data$year), max(data$year)),
   catchment = deparse(substitute(data))
 )
 }
 \arguments{
-\item{data}{data frame containing the variables: year, month, day, Q, P, Ta_min, Ta_max, Ta, wt, GL}
+\item{data}{data frame containing the variables: year, month, day, wt and additional covariates.}
 
 \item{nlags}{Number of lags used for for all features except for time features.}
 
-\item{training_test_fractions}{Numeric vector of fractions of data used for splitting the data in training and test data sets, e.g. c(0.8, 0.2)}
+\item{training_fraction}{Numeric of fraction of data used for training, e.g. 0.8. Testing data will consist of the (1-training_fraction) fraction of data.}
 
 \item{year_range}{Vector containing the first and last year to use. Only relevant in case not all available years should be used.}
 

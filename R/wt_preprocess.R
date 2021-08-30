@@ -3,9 +3,9 @@
 #' Preprocessing data for stream water temperature prediction. All results are stored automatically in the folder catchment in the current working directory.
 
 #'
-#' @param data data frame containing the variables: year, month, day, Q, P, Ta_min, Ta_max, Ta, wt, GL
+#' @param data data frame containing the variables: year, month, day, wt and additional covariates.
 #' @param nlags Number of lags used for for all features except for time features.
-#' @param training_test_fractions Numeric vector of fractions of data used for splitting the data in training and test data sets, e.g. c(0.8, 0.2)
+#' @param training_fraction Numeric of fraction of data used for training, e.g. 0.8. Testing data will consist of the (1-training_fraction) fraction of data.
 #' @param year_range Vector containing the first and last year to use. Only relevant in case not all available years should be used.
 #' @param catchment Character used to create the folder in which the resulting preprocessed training and test data sets get stored.
 #'
@@ -20,11 +20,18 @@
 #'}
 wt_preprocess <- function(data,
                           nlags = 4,
-                          training_test_fractions = c(0.8, 0.2),
+                          training_fraction = 0.8,
                           year_range = c(min(data$year), max(data$year)),
                           catchment = deparse(substitute(data))
                           ){
 
+  if(training_fraction < 0) {
+    stop("training_fraction needs to numeric in the range (0,1)")
+  }
+  if(training_fraction %in% c(0, 1)) {
+    stop(cat("training_fraction needs to numeric in the range (0,1).",
+    "Values of 0 or 1 would result in either no training data or no test data."))
+  }
   if(data$year[1] > utils::tail(data$year, 1)){
     stop(cat("Data needs to be orded from earliest date onwards.",
              "Therefore, the year of the first row needs to be smaller than the last year!"))
@@ -108,34 +115,18 @@ wt_preprocess <- function(data,
   variables <- variables[!grepl("Fmon", variables)]
   for(variable in variables) data <- create_lags(data, variable, nlags)
 
-  # Split: train_year_from to split_year; split_year+1 to last year of the data series
-  # Split in 2/3 training and 1/3 validation
-  train_length <- floor(nrow(data) * training_test_fractions[1])
+  # Split in training and validation by training_fraction
+  train_length <- floor(nrow(data) * training_fraction)
   train <- data[1:train_length,]
   test <- data[(train_length+1):nrow(data),]
   cat("Preprocessed data sets are stored in folder", catchment, ":\n")
   cat("input_data.feather: full preprocessed data set in feather format\n")
-  cat("train_data.feather: first", training_test_fractions[1]*100,
+  cat("train_data.feather: first", training_fraction*100,
       "% of the preprocessed data set in feather format\n")
-  cat("test_data.feather: last", training_test_fractions[2]*100,
+  cat("test_data.feather: last", (1-training_fraction)*100,
       "% of the preprocessed data set in feather format\n\n")
   feather::write_feather(data, paste0(catchment, "/", "input_data.feather"))
   feather::write_feather(train, paste0(catchment, "/", "train_data.feather"))
   feather::write_feather(test, paste0(catchment, "/", "test_data.feather"))
-
-  if(sum(is.na(data$GL)) > 0 & sum(is.na(data$GL)) != nrow(data)){
-    cat("Preparing 2nd dataset with radiation for the whole time series\n")
-    radiation_data <- data[!is.na(data$GL), ]
-    rad_train_length <- floor(nrow(radiation_data) * training_test_fractions[1])
-    radiation_train <- radiation_data[1:rad_train_length,]
-    radiation_test <- radiation_data[(rad_train_length+1):nrow(radiation_data),]
-    cat("Preprocessed data sets are stored in folder", catchment, ":\n")
-    cat("train_radiation_data.feather: first", training_test_fractions[1]*100,
-        "% of the preprocessed data set in feather format\n")
-    cat("test_radiation_data.feather: last", training_test_fractions[2]*100,
-        "% of the preprocessed data set in feather format\n\n")
-    feather::write_feather(radiation_train, paste0(catchment, "/", "train_radiation_data.feather"))
-    feather::write_feather(radiation_test, paste0(catchment, "/", "test_radiation_data.feather"))
-  }
 }
 
