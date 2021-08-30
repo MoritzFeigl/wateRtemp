@@ -4,6 +4,9 @@
 # wateRtemp
 
 <!-- badges: start -->
+
+[![DOI](https://zenodo.org/badge/186992552.svg)](https://zenodo.org/badge/latestdoi/186992552)
+[![R-CMD-check](https://github.com/MoritzFeigl/wateRtemp/workflows/R-CMD-check/badge.svg)](https://github.com/MoritzFeigl/wateRtemp/actions)
 <!-- badges: end -->
 
 A machine learning toolbox for daily mean river water temperature
@@ -96,10 +99,7 @@ wt_preprocess(test_catchment, nlags = 4, training_test_fractions = c(0.8, 0.2))
 #> input_data.feather: full preprocessed data set in feather format
 #> train_data.feather: first 80 % of the preprocessed data set in feather format
 #> test_data.feather: last 20 % of the preprocessed data set in feather format
-#> Registered S3 methods overwritten by 'tibble':
-#>   method     from  
-#>   format.tbl pillar
-#>   print.tbl  pillar
+#> 
 #> Preparing 2nd dataset with radiation for the whole time series
 #> Preprocessed data sets are stored in folder test_catchment :
 #> train_radiation_data.feather: first 80 % of the preprocessed data set in feather format
